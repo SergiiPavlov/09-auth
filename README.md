@@ -1,18 +1,20 @@
-# 07-routing-nextjs
+# 09-auth — NoteHub with Auth (Next.js App Router)
 
-Продолжение NoteHub: улучшенная маршрутизация (Next.js App Router).
+Homework 09: switch to the new NoteHub API with cookie-based auth and add protected routes.
 
-- Catch-all `/notes/filter/[...slug]` — фильтрация по тегу (`All` → без тега).
-- Параллельные маршруты: `@sidebar` (меню тегов) и `@modal` (предпросмотр заметки).
-- Перехват маршрута: открытие `/notes/[id]` из списка — модалка поверх страницы.
-- Страница 404: `app/not-found.tsx`.
-- CSR-данные через TanStack Query, серверная страница только прокидывает параметры.
-- Стили скопированы из `react-notehub-styles-hw-07`.
+## What’s inside
+- New backend (cookie auth): `https://notehub-api.goit.study` via our `app/api/*` routes.
+- Route groups:
+  - `(auth routes)`: `/sign-in`, `/sign-up`
+  - `(private routes)`: `/profile`, all `/notes/*`
+- API layer split:
+  - `lib/api/api.ts` — axios instance (`withCredentials: true`, `baseURL = NEXT_PUBLIC_API_URL + '/api'`)
+  - `lib/api/clientApi.ts` — CSR calls (login/register/logout/session/notes)
+  - `lib/api/serverApi.ts` — SSR calls (cookies → headers)
+- Auth state: Zustand `authStore` (`user`, `isAuthenticated`, `setUser`, `clearIsAuthenticated`)
+- Middleware guard: `middleware.ts` (redirects unauth users to `/sign-in`, authed users away from `/sign-in|/sign-up` to `/profile`)
+- `AuthProvider` — client session check on transitions with loader
+- Styles from HW-09 style pack (CSS Modules)
 
-## Скрипты
-- `npm run dev`
-- `npm run build`
-- `npm run start`
-- `npm run format`
-
-`.env.local` с `NEXT_PUBLIC_NOTEHUB_TOKEN` уже положен.
+## Env
+Create `.env.local`:
