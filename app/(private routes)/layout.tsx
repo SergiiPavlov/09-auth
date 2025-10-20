@@ -13,11 +13,11 @@ export default function PrivateRoutesLayout({
   modal: ReactNode; // ОБЯЗАТЕЛЬНО
 }) {
   return (
-    <AuthProvider enforceAuth>
-      <TanStackProvider>
+    <TanStackProvider>
+      <AuthProvider enforceAuth>
         {children}
         {modal}
-      </TanStackProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </TanStackProvider>
   );
 }
