@@ -1,9 +1,13 @@
-import type { Metadata, PageProps } from 'next';
+import type { Metadata } from 'next';
 import { unstable_noStore } from 'next/cache';
 import NotesClient from './Notes.client';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { fetchNotes } from '@/lib/api/notes';
 import type { NoteTag } from '@/types/note';
+type Props = {
+  params: Promise<{ slug?: string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +36,12 @@ function normalizeTag(value?: string): NoteTag | 'All' {
 }
 
 
-type NotesFilterPageProps = PageProps<{ slug?: string[] }>;
+type NotesFilterPageProps = { params: Promise<{ slug?: string[] }> };
 
 
 export async function generateMetadata({ params }: NotesFilterPageProps): Promise<Metadata> {
   unstable_noStore();
-  const { slug = [] } = params ?? {};
+  const { slug = [] } = await params;
   const rawTag = Array.isArray(slug) && slug.length ? slug[0] : ALL_TAG;
   const tag = normalizeTag(rawTag);
   const isAll = tag === ALL_TAG;
@@ -73,7 +77,7 @@ export async function generateMetadata({ params }: NotesFilterPageProps): Promis
 
 export default async function NotesFilterPage({ params }: NotesFilterPageProps) {
   unstable_noStore();
-  const { slug = [] } = params ?? {};
+  const { slug = [] } = await params;
   const rawTag = Array.isArray(slug) && slug.length ? slug[0] : ALL_TAG;
   const initialTag = normalizeTag(rawTag);
   const tagForQuery = initialTag === ALL_TAG ? '' : initialTag;
