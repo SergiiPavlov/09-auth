@@ -33,6 +33,10 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
     setSearch('');
   }, [initialTag]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, tag]);
+
   const tagForQuery = useMemo<NoteTag | undefined>(() => {
     return TAGS.includes(tag as any) && tag !== 'All' ? (tag as NoteTag) : undefined;
   }, [tag]);
@@ -48,22 +52,42 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
   });
 
   const totalPages = data?.totalPages ?? 1;
+  const hasNotes = (data?.notes?.length ?? 0) > 0;
 
   const handlePageChange = (next: number) => setPage(next);
+  const handleTagChange = (nextTag: string) => {
+    setTag(nextTag);
+  };
 
   return (
     <div className={css.app}>
       <div className={css.toolbar}>
         <SearchBox value={search} onChange={setSearch} />
+        <div className={css.toolbarActions}>
+          <label className={css.selectLabel}>
+            <span className={css.selectLabelText}>Tag</span>
+            <select
+              className={css.select}
+              value={tag}
+              onChange={(event) => handleTagChange(event.target.value)}
+            >
+              {TAGS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 'All' ? 'All notes' : option}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <Link prefetch={false} href="/notes/action/create" className={css.button}>
-          Create note +
-        </Link>
+          <Link prefetch={false} href="/notes/action/create" className={css.button}>
+            Create note +
+          </Link>
+        </div>
       </div>
 
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
 
-      {isPending && <p>Loading, please wait...</p>}
+      {isPending && !isPlaceholderData && <p>Loading, please wait...</p>}
       {error && (
         <p>
           Could not fetch the list of notes.
@@ -71,6 +95,7 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
         </p>
       )}
 
+      {!isPending && !error && !hasNotes && <p>No notes found.</p>}
       <NoteList notes={data?.notes ?? []} />
     </div>
   );

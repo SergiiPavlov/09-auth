@@ -1,3 +1,5 @@
+import type { NextResponse } from 'next/server';
+
 export function logErrorResponse(errorObj: unknown): void {
   const green = '\x1b[32m';
   const yellow = '\x1b[33m';
@@ -8,20 +10,25 @@ export function logErrorResponse(errorObj: unknown): void {
   console.dir(errorObj, { depth: null, colors: true });
 }
 
-export type ParsedCookieRecord = Record<string, string | undefined>;
+type CookieLike = { toString(): string };
 
-export function parseSetCookieHeader(cookieStr: string): ParsedCookieRecord {
-  return cookieStr.split(';').reduce<ParsedCookieRecord>((acc, segment) => {
-    const [rawKey, ...rawValue] = segment.trim().split('=');
-    if (!rawKey) {
-      return acc;
-    }
+export type SetCookieHeader = string | string[] | undefined;
 
-    const key = rawKey.trim();
-    const value = rawValue.length > 0 ? rawValue.join('=').trim() : undefined;
+export function appendSetCookieHeaders(
+  response: NextResponse,
+  setCookie: SetCookieHeader,
+): void {
+  if (!setCookie) return;
 
-    acc[key] = value;
+  const values = Array.isArray(setCookie) ? setCookie : [setCookie];
 
-    return acc;
-  }, {});
+  for (const value of values) {
+    if (!value) continue;
+    response.headers.append('Set-Cookie', value);
+  }
+}
+
+export function toUpstreamCookieHeader(cookieStore: CookieLike): string | undefined {
+  const serialized = cookieStore.toString();
+  return serialized.length > 0 ? serialized : undefined;
 }
