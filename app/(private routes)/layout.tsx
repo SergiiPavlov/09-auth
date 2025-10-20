@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
 import AuthProvider from '@/components/AuthProvider/AuthProvider';
+import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function PrivateRoutesLayout({
   children,
@@ -10,8 +14,10 @@ export default function PrivateRoutesLayout({
 }) {
   return (
     <AuthProvider enforceAuth>
-      {children}
-      {modal}
+      <TanStackProvider>
+        {children}
+        {modal}
+      </TanStackProvider>
     </AuthProvider>
   );
 }
