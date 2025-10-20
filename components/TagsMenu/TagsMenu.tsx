@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import css from './TagsMenu.module.css';
 import type { NoteTag } from '@/types/note';
+import { paths } from '@/lib/paths';
 
 const NOTE_TAGS: NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'];
 const ALL_TAG = 'All';
@@ -70,8 +71,8 @@ export default function TagsMenu() {
                 prefetch={false}
                 href={
                   tag === ALL_TAG
-                    ? '/notes/filter/All'
-                    : `/notes/filter/${encodeURIComponent(String(tag))}`
+                    ? paths.notesFilterAll()
+                    : paths.notesFilterByTag(String(tag))
                 }
                 className={css.menuLink}
                 role="menuitem"

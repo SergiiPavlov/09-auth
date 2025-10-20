@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { paths } from '@/lib/paths';
 
 const APP_URL = 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 
-const PAGE_PATH = '/notes';
+const PAGE_PATH = paths.notes();
 
 export const metadata = {
   title: 'All notes',
@@ -30,5 +31,5 @@ export const metadata = {
 } satisfies Metadata;
 
 export default function NotesPage() {
-  redirect('/notes/filter/All');
+  redirect(paths.notesFilterAll());
 }

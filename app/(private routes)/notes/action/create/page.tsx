@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import css from './CreateNote.module.css';
 import NoteForm from '@/components/NoteForm/NoteForm';
 import { getCategories } from '@/lib/api';
+import { paths } from '@/lib/paths';
 
 const APP_URL = 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 
-const PAGE_PATH = '/notes/action/create';
+const PAGE_PATH = paths.notesActionCreate();
 
 export const metadata = {
   title: 'Create note',

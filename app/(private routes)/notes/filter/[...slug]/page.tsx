@@ -4,6 +4,7 @@ import NotesClient from './Notes.client';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { fetchNotes } from '@/lib/api/notes';
 import type { NoteTag } from '@/types/note';
+import { paths } from '@/lib/paths';
 type Props = {
   params: Promise<{ slug?: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -48,7 +49,10 @@ export async function generateMetadata({ params }: NotesFilterPageProps): Promis
   const pageTitle = isAll ? 'All notes' : `Notes tagged: ${tag}`;
   const description = isAll ? 'Browse all notes' : `Browse notes filtered by tag: ${tag}`;
   const slugSegment = isAll ? ALL_TAG : tag;
-  const canonicalPath = `/notes/filter/${encodeURIComponent(slugSegment)}`;
+  const canonicalPath =
+    slugSegment === ALL_TAG
+      ? paths.notesFilterAll()
+      : paths.notesFilterByTag(slugSegment);
   const url = `${APP_URL}${canonicalPath}`;
 
   return {

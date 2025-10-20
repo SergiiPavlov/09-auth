@@ -7,6 +7,7 @@ import type { Note } from '@/types/note';
 import { deleteNote } from '@/lib/api/notes';
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/errors';
+import { paths } from '@/lib/paths';
 
 export interface NoteListProps {
   notes: Note[];
@@ -34,7 +35,7 @@ export default function NoteList({ notes }: NoteListProps) {
           <p className={css.content}>{n.content ?? ''}</p>
           <div className={css.footer}>
             <span className={css.tag}>{n.tag}</span>
-            <Link prefetch={false} className={css.link} href={`/notes/${n.id}`}>
+            <Link prefetch={false} className={css.link} href={paths.noteDetails(n.id)}>
               View details
             </Link>
             <button

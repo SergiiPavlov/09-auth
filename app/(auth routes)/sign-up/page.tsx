@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignUpPage.module.css';
 import { register } from '@/lib/api/clientApi';
 import { getErrorMessage } from '@/lib/errors';
+import { paths } from '@/lib/paths';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function SignUpPage() {
 
     try {
       await register({ email, password });
-      router.push('/profile');
+      router.push(paths.profile());
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Registration failed'));
       setIsSubmitting(false);

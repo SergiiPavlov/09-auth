@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import styles from '@/app/styles/AuthNavigation.module.css';
 import { getSession, logout } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
+import { paths } from '@/lib/paths';
 
 export default function AuthNavigation() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export default function AuthNavigation() {
     try {
       await logout();
     } finally {
-      router.push('/sign-in');
+      router.push(paths.signIn());
     }
   }
 
@@ -25,12 +26,12 @@ export default function AuthNavigation() {
     return (
       <>
         <li className={styles.navigationItem}>
-          <Link prefetch={false} href="/sign-in" className={styles.navigationLink}>
+          <Link prefetch={false} href={paths.signIn()} className={styles.navigationLink}>
             Login
           </Link>
         </li>
         <li className={styles.navigationItem}>
-          <Link prefetch={false} href="/sign-up" className={styles.navigationLink}>
+          <Link prefetch={false} href={paths.signUp()} className={styles.navigationLink}>
             Sign up
           </Link>
         </li>
@@ -41,7 +42,7 @@ export default function AuthNavigation() {
   return (
     <>
       <li className={styles.navigationItem}>
-        <Link prefetch={false} href="/profile" className={styles.navigationLink}>
+        <Link prefetch={false} href={paths.profile()} className={styles.navigationLink}>
           Profile
         </Link>
       </li>

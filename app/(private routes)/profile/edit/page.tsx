@@ -7,6 +7,7 @@ import styles from '@/app/styles/EditProfilePage.module.css';
 import { getSession, updateMe } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
 import { getErrorMessage } from '@/lib/errors';
+import { paths } from '@/lib/paths';
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function EditProfilePage() {
 
     try {
       await updateMe(username.trim());
-      router.push('/profile');
+      router.push(paths.profile());
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Update failed'));
       setIsSaving(false);
@@ -50,7 +51,7 @@ export default function EditProfilePage() {
   }
 
   function handleCancel() {
-    router.push('/profile');
+    router.push(paths.profile());
   }
 
   return (

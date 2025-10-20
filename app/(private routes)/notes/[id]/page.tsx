@@ -3,6 +3,7 @@ import { unstable_noStore } from 'next/cache';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import { fetchNoteById } from '@/lib/api/notes';
 import NoteDetailsClient from './NoteDetails.client';
+import { paths } from '@/lib/paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 export async function generateMetadata({ params }: NoteDetailsPageProps): Promise<Metadata> {
   unstable_noStore();
   const { id } = await params;
-  const canonicalPath = `/notes/${encodeURIComponent(id)}`;
+  const canonicalPath = paths.noteDetails(id);
   const url = `${APP_URL}${canonicalPath}`;
   try {
     const note = await fetchNoteById(id);

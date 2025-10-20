@@ -10,6 +10,7 @@ import Pagination from '@/components/Pagination/Pagination';
 import NoteList from '@/components/NoteList/NoteList';
 import { fetchNotes, type FetchNotesResponse } from '@/lib/api/notes';
 import type { NoteTag } from '@/types/note';
+import { paths } from '@/lib/paths';
 
 const PER_PAGE = 12;
 const TAGS: readonly (NoteTag | 'All')[] = [
@@ -82,7 +83,7 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: NoteT
               ))}
             </select>
           </label>
-          <Link prefetch={false} href="/notes/action/create" className={css.button}>
+          <Link prefetch={false} href={paths.notesActionCreate()} className={css.button}>
             Create note +
           </Link>
         </div>

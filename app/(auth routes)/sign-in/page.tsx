@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignInPage.module.css';
 import { login } from '@/lib/api/clientApi';
 import { getErrorMessage } from '@/lib/errors';
+import { paths } from '@/lib/paths';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function SignInPage() {
 
     try {
       await login({ email, password });
-      router.push('/profile');
+      router.push(paths.profile());
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Login failed'));
       setIsSubmitting(false);
