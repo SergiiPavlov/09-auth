@@ -21,9 +21,9 @@ export default function Header() {
           <li className={css.navigationItem}>
             <TagsMenu />
           </li>
+          <AuthNavigation />
         </ul>
       </nav>
-      <AuthNavigation />
     </header>
   );
 }

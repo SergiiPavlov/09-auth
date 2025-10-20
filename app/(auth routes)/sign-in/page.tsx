@@ -1,65 +1,57 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignInPage.module.css';
 import { login } from '@/lib/api/clientApi';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function SignInPage() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError(null);
-    setLoading(true);
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
     const email = String(formData.get('email') || '');
     const password = String(formData.get('password') || '');
+
     try {
       await login({ email, password });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Login failed');
-      setLoading(false);
+      router.push('/profile');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Login failed'));
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <section className={styles.section}>
-      <h1 className={styles.title}>Sign in</h1>
-      <form className={styles.form} onSubmit={onSubmit}>
-        <label className={styles.label}>
-          Email
-          <input
-            className={styles.input}
-            type="email"
-            name="email"
-            placeholder="email@example.com"
-            required
-          />
-        </label>
-        <label className={styles.label}>
-          Password
-          <input
-            className={styles.input}
-            type="password"
-            name="password"
-            placeholder="••••••••"
-            required
-          />
-        </label>
-        <button className={styles.button} type="submit" disabled={loading}>
-          {loading ? 'Signing in…' : 'Sign in'}
-        </button>
+    <main className={styles.mainContent}>
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <h1 className={styles.formTitle}>Sign in</h1>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="email">Email</label>
+          <input id="email" type="email" name="email" className={styles.input} required />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" name="password" className={styles.input} required />
+        </div>
+
+        <div className={styles.actions}>
+          <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
+            {isSubmitting ? 'Logging in…' : 'Log in'}
+          </button>
+        </div>
+
         {error && <p className={styles.error}>{error}</p>}
       </form>
-      <p className={styles.hint}>
-        Don&apos;t have an account?{' '}
-        <Link prefetch={false} href="/sign-up" className={styles.link}>
-          Sign up
-        </Link>
-      </p>
-    </section>
+    </main>
   );
 }
