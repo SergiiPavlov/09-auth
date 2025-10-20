@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { Roboto } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header/Header';
@@ -41,8 +42,8 @@ export const metadata: Metadata = {
 };
 
 export interface RootLayoutProps {
-  children: React.ReactNode;
-  modal: React.ReactNode;
+  children: ReactNode;
+  modal?: ReactNode;
 }
 
 export default function RootLayout({ children, modal }: Readonly<RootLayoutProps>) {
