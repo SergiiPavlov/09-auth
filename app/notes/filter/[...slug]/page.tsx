@@ -18,32 +18,28 @@ const ALL_TAG = 'All';
 const APP_URL = 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 
-function resolveTagFromSlug(slug?: string): { tag: string; tagForQuery?: NoteTag } {
-  if (!slug) {
-    return { tag: ALL_TAG, tagForQuery: undefined };
+function normalizeTag(value?: string): NoteTag | 'All' {
+  if (!value) {
+    return ALL_TAG;
   }
 
-  const matchingTag = FILTERABLE_TAGS.find((tag) => tag.toLowerCase() === slug.toLowerCase());
-  if (matchingTag) {
-    return { tag: matchingTag, tagForQuery: matchingTag };
+  if (value.toLowerCase() === ALL_TAG.toLowerCase()) {
+    return ALL_TAG;
   }
 
-  if (slug.toLowerCase() === ALL_TAG.toLowerCase()) {
-    return { tag: ALL_TAG, tagForQuery: undefined };
-  }
-
-  return { tag: ALL_TAG, tagForQuery: undefined };
+  const matchingTag = FILTERABLE_TAGS.find((tag) => tag.toLowerCase() === value.toLowerCase());
+  return matchingTag ?? ALL_TAG;
 }
 
 interface NotesFilterPageProps {
-  params: Promise<{ slug?: string[] }>;
+  params: { slug?: string[] };
 }
 
 export async function generateMetadata({ params }: NotesFilterPageProps): Promise<Metadata> {
   unstable_noStore();
-  const { slug = [] } = (await params) ?? {};
-  const rawValue = slug[0];
-  const { tag } = resolveTagFromSlug(rawValue);
+  const { slug = [] } = params ?? {};
+  const rawTag = Array.isArray(slug) && slug.length ? slug[0] : ALL_TAG;
+  const tag = normalizeTag(rawTag);
   const isAll = tag === ALL_TAG;
   const pageTitle = isAll ? 'All notes' : `Notes tagged: ${tag}`;
   const description = isAll ? 'Browse all notes' : `Browse notes filtered by tag: ${tag}`;
@@ -77,9 +73,10 @@ export async function generateMetadata({ params }: NotesFilterPageProps): Promis
 
 export default async function NotesFilterPage({ params }: NotesFilterPageProps) {
   unstable_noStore();
-  const { slug = [] } = (await params) ?? {};
-  const rawValue = slug[0];
-  const { tag: initialTag, tagForQuery } = resolveTagFromSlug(rawValue);
+  const { slug = [] } = params ?? {};
+  const rawTag = Array.isArray(slug) && slug.length ? slug[0] : ALL_TAG;
+  const initialTag = normalizeTag(rawTag);
+  const tagForQuery = initialTag === ALL_TAG ? '' : initialTag;
 
   const qc = new QueryClient();
   await qc.prefetchQuery({
