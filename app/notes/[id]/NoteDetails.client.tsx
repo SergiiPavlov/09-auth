@@ -25,7 +25,8 @@ export default function NoteDetailsClient() {
 
   // Состояния по ТЗ
   if (isLoading) return <p>Loading, please wait...</p>;
-  if (error || !note) return <p>Something went wrong.</p>;
+  if (error) return <p>Something went wrong.</p>;
+  if (!note) return <p>Note not found.</p>;
 
   // ✅ Стабильное форматирование даты (без локали/таймзоны)
   const createdIso = new Date(note.createdAt).toISOString().slice(0, 10);
