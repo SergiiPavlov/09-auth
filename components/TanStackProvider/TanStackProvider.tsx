@@ -15,6 +15,5 @@ export default function TanStackProvider({ children }: { children: ReactNode }) 
         },
       })
   );
-
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

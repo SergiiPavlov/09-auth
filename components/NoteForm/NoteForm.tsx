@@ -4,118 +4,116 @@ import css from './NoteForm.module.css';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { createNote, type NewNoteData } from '@/lib/api';
+import { createNote, type NewNoteData, getCategories } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import type { NoteTag } from '@/types/note';
+import { useEffect, useMemo, useState } from 'react';
 import { useNoteDraftStore, initialDraft, type NoteDraft } from '@/lib/store/noteStore';
 
 const TAGS: readonly NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
-
 const MIN_TITLE = 3;
 
-export default function NoteForm({ categories }: { categories?: { id: string; name: string }[] }) {
-  const categoriesOptions =
-    categories && categories.length
-      ? categories.map((c) => ({ id: c.id, name: c.name }))
-      : TAGS.map((t) => ({ id: t.toLowerCase(), name: t }));
+type Props = { categories?: { id: string; name: string }[] };
+
+export default function NoteForm({ categories }: Props) {
   const router = useRouter();
   const qc = useQueryClient();
-  const draft = useNoteDraftStore((state) => state.draft);
-  const setDraft = useNoteDraftStore((state) => state.setDraft);
-  const clearDraft = useNoteDraftStore((state) => state.clearDraft);
+  const { draft, setDraft, clearDraft } = useNoteDraftStore();
+
+  // Fallback categories from TAGS if none provided
+  const fallbackCategories = useMemo(
+    () => TAGS.map((t) => ({ id: t.toLowerCase(), name: t })),
+    []
+  );
+  const [cats, setCats] = useState<{ id: string; name: string }[]>(categories ?? fallbackCategories);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!categories) {
+      getCategories().then((list) => {
+        if (mounted && Array.isArray(list) && list.length) setCats(list);
+      }).catch(() => {});
+    }
+    return () => { mounted = false; };
+  }, [categories]);
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      // invalidate lists and details
-      qc.invalidateQueries({ queryKey: ['notes'] });
+    mutationFn: (payload: NewNoteData) => createNote(payload),
+    onSuccess: async () => {
       toast.success('Note created');
       clearDraft();
-      router.back();
+      await qc.invalidateQueries({ queryKey: ['notes'] });
+      router.refresh();
     },
-    onError: (err) => toast.error(getErrorMessage(err)),
+    onError: (err: unknown) => {
+      toast.error(getErrorMessage(err, 'Failed to create note'));
+    },
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target as HTMLInputElement & { name: keyof NoteDraft };
-    const fieldName = name as keyof NoteDraft;
-    const nextValue = fieldName === 'tag' ? (value as NoteTag) : value;
-    setDraft({ [fieldName]: nextValue } as Partial<NoteDraft>);
-  };
-
-  const handleFormAction = async (formData: FormData) => {
-    const title = String(formData.get('title') ?? '').trim();
-    const content = String(formData.get('content') ?? '').trim();
-    const tag = String(formData.get('tag') ?? 'Todo') as NoteTag;
-
-    if (!title) {
-      toast.error('Title is required');
-      return;
-    }
-    if (title.length < MIN_TITLE) {
-      toast.error(`Title must be at least ${MIN_TITLE} characters`);
-      return;
-    }
-
-    try {
-      await mutateAsync({ title, content, categoryId: tag.toLowerCase() } as NewNoteData);
-    } catch {
-      // swallow error, toast handled in onError
-    }
+  const handleChange: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> = (e) => {
+    const { name, value } = e.target as HTMLInputElement;
+    setDraft({ [name]: value } as Partial<NoteDraft>);
   };
 
   const handleCancel = () => {
-    router.back(); // do not clear draft on cancel
+    clearDraft();
+    router.back();
   };
 
-  const titleLen = (draft.title ?? initialDraft.title ?? '').trim().length;
-  const titleInvalid = titleLen > 0 && titleLen < MIN_TITLE;
+  const handleFormAction = async () => {
+    const title = draft.title?.trim() ?? '';
+    const content = draft.content?.trim() ?? '';
+    const tag = draft.tag ?? 'Todo';
+    if (title.length < MIN_TITLE || !content) {
+      toast.error('Please fill in title and content');
+      return;
+    }
+    await mutateAsync({ title, content, tag });
+  };
+
+  const current = { ...initialDraft, ...draft };
 
   return (
     <form className={css.form}>
-      <div className={css.formGroup}>
-        <label htmlFor="title">Title</label>
+      <div className={css.field}>
+        <label htmlFor="title" className={css.label}>Title</label>
         <input
           id="title"
           name="title"
           type="text"
           className={css.input}
-          value={draft.title ?? initialDraft.title}
+          value={current.title}
           onChange={handleChange}
           required
           minLength={MIN_TITLE}
-          aria-invalid={titleInvalid ? true : undefined}
-          aria-required="true"
+          placeholder="Enter title"
         />
-        {titleInvalid && (
-          <p className={css.error}>Title must be at least {MIN_TITLE} characters.</p>
-        )}
       </div>
 
-      <div className={css.formGroup}>
-        <label htmlFor="content">Content</label>
+      <div className={css.field}>
+        <label htmlFor="content" className={css.label}>Content</label>
         <textarea
           id="content"
           name="content"
           className={css.textarea}
-          value={draft.content ?? initialDraft.content}
+          value={current.content}
           onChange={handleChange}
+          required
+          placeholder="Write your note..."
         />
       </div>
 
-      <div className={css.formGroup}>
-        <label htmlFor="tag">Tag</label>
+      <div className={css.field}>
+        <label htmlFor="tag" className={css.label}>Tag</label>
         <select
           id="tag"
           name="tag"
           className={css.select}
-          value={draft.tag ?? initialDraft.tag}
+          value={current.tag ?? 'Todo'}
           onChange={handleChange}
         >
-          {categoriesOptions.map((opt) => (
-            <option key={opt.id} value={opt.id}>
+          {cats.map((opt) => (
+            <option key={opt.id} value={opt.name}>
               {opt.name}
             </option>
           ))}
