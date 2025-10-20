@@ -55,7 +55,7 @@ export default function RootLayout({ children, modal }: Readonly<RootLayoutProps
           {/* Единственный экземпляр Toaster на всё приложение */}
           <Toaster />
           {children}
-          {modal}
+          {modal && modal}
           <Footer />
         </TanStackProvider>
       </body>

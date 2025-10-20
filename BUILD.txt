@@ -1,2 +1,5 @@
-Patched slug page imports/usages of PageProps (Next15 compatible).
-Patched: added 'await params' destructuring in slug page(s): app/notes/filter/[...slug]/page.tsx
+Variant B applied:
+Removed app/@modal at root
+Patched app/(private routes)/layout.tsx to require modal and wrap in AuthProvider(enforceAuth)
+Patched app/layout.tsx: modal now optional (root no longer defines @modal)
+Updated absolute imports for notes and modal intercept.
