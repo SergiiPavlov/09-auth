@@ -4,24 +4,18 @@ import type { NoteTag } from '@/types/note';
 export type NewNoteData = {
   title: string;
   content: string;
-  tag?: NoteTag;
-  categoryId?: string;
+  tag: NoteTag;
 };
 
 /**
  * Create a new note (cookie-auth required).
  */
 export async function createNote(data: NewNoteData) {
-  const payload: Record<string, any> = {
+  const res = await api.post('/notes', {
     title: data.title,
     content: data.content,
-  };
-  if (data.tag) {
-    payload.tag = data.tag;
-  } else if (data.categoryId) {
-    payload.categoryId = data.categoryId;
-  }
-  const res = await api.post('/notes', payload);
+    tag: data.tag, // must be one of: 'Todo' | 'Work' | 'Personal' | 'Meeting' | 'Shopping'
+  });
   return res.data;
 }
 
@@ -32,7 +26,7 @@ export async function createNote(data: NewNoteData) {
 export async function getCategories(): Promise<{ id: string; name: string }[]> {
   try {
     const res = await api.get('/notes/categories');
-    const items = res.data?.items || res.data?.categories || res.data;
+    const items = (res.data?.items ?? res.data?.categories ?? res.data) as any;
     if (Array.isArray(items) && items.length && items[0]?.id && items[0]?.name) {
       return items as { id: string; name: string }[];
     }

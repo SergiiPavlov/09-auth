@@ -2,10 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Roboto } from 'next/font/google';
 import './globals.css';
-import Header from '@/components/Header/Header';
-import Footer from '@/components/Footer/Footer';
-import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
-import { Toaster } from 'react-hot-toast';
+import AppShell from '@/components/AppShell/AppShell';
 
 const roboto = Roboto({
   subsets: ['latin'],
@@ -19,14 +16,9 @@ const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: {
-    default: 'NoteHub',
-    template: '%s · NoteHub',
-  },
+  title: { default: 'NoteHub', template: '%s · NoteHub' },
   description: 'NoteHub demo: search, filter, paginate notes.',
-  alternates: {
-    canonical: '/',
-  },
+  alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
     url: '/',
@@ -41,23 +33,11 @@ export const metadata: Metadata = {
   },
 };
 
-export interface RootLayoutProps {
-  children: ReactNode;
-  modal?: ReactNode;
-}
-
-export default function RootLayout({ children, modal }: Readonly<RootLayoutProps>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={roboto.variable}>
-        <TanStackProvider>
-          <Header />
-          {/* Единственный экземпляр Toaster на всё приложение */}
-          <Toaster />
-          {children}
-          {modal && modal}
-          <Footer />
-        </TanStackProvider>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

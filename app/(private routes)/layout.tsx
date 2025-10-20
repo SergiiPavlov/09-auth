@@ -1,11 +1,20 @@
 import type { ReactNode } from 'react';
 import AuthProvider from '@/components/AuthProvider/AuthProvider';
 
-interface PrivateRoutesLayoutProps {
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export default function PrivateRoutesLayout({
+  children,
+  modal,
+}: {
   children: ReactNode;
   modal: ReactNode;
-}
-
-export default function PrivateRoutesLayout({ children, modal }: PrivateRoutesLayoutProps) {
-  return <AuthProvider enforceAuth>{children}{modal}</AuthProvider>;
+}) {
+  return (
+    <AuthProvider enforceAuth>
+      {children}
+      {modal}
+    </AuthProvider>
+  );
 }
