@@ -19,8 +19,7 @@
     "react-hot-toast": "^2.4.1",
     "react-paginate": "^8.3.0",
     "use-debounce": "^10.0.0",
-    "zustand": "^4.5.2",
-    "cookie": "^0.6.0"
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@types/node": "24.7.2",
