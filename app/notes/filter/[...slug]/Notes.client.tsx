@@ -12,7 +12,14 @@ import { fetchNotes, type FetchNotesResponse } from '@/lib/api/notes';
 import type { NoteTag } from '@/types/note';
 
 const PER_PAGE = 12;
-const TAGS: readonly (NoteTag | 'All')[] = ['All', 'Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
+const TAGS: readonly (NoteTag | 'All')[] = [
+  'All',
+  'Todo',
+  'Work',
+  'Personal',
+  'Meeting',
+  'Shopping',
+] as const;
 
 export default function NotesClient({ initialTag = 'All' }: { initialTag?: string }) {
   const [search, setSearch] = useState('');

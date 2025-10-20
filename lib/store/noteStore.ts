@@ -35,6 +35,6 @@ export const useNoteDraftStore = create<NoteDraftStore>()(
     {
       name: 'notehub-note-draft',
       partialize: (state) => ({ draft: state.draft }),
-    }
-  )
+    },
+  ),
 );

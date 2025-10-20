@@ -1,23 +1,14 @@
-import axios from 'axios';
-
-export function getErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
-  if (axios.isAxiosError(err)) {
-    const status = err.response?.status;
-    const msg =
-      (err.response?.data as any)?.message ||
-      (err.response?.data as any)?.error ||
-      err.message;
-
-    if (status === 401) return 'Unauthorized: проверьте переменную NEXT_PUBLIC_NOTEHUB_TOKEN.';
-    if (status === 429) return 'Слишком много запросов. Попробуйте через пару секунд.';
-    if (status === 404) return 'Ресурс не найден.';
-    if (status && msg) return `${status}: ${msg}`;
-    if (msg) return msg;
+export function getErrorMessage(err: unknown, fallback: string = 'Unexpected error'): string {
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object') {
+    const anyErr = err as any;
+    // Axios-like error shape
+    if (anyErr.response?.data?.message && typeof anyErr.response.data.message === 'string') {
+      return anyErr.response.data.message;
+    }
+    if (anyErr.message && typeof anyErr.message === 'string') {
+      return anyErr.message;
+    }
   }
-  if (err instanceof Error) return err.message;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return fallback;
-  }
+  return fallback;
 }

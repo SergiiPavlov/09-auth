@@ -9,11 +9,17 @@ export default async function SidebarNotes() {
 
   return (
     <nav aria-label="Filter notes by tag">
-      <Link prefetch={false} href="/notes/action/create" className={css.menuLink}>Create note</Link>
+      <Link prefetch={false} href="/notes/action/create" className={css.menuLink}>
+        Create note
+      </Link>
       <ul className={css.menuList}>
         {TAGS.map((tag) => (
           <li key={tag} className={css.menuItem}>
-            <Link prefetch={false} href={`/notes/filter/${encodeURIComponent(tag)}`} className={css.menuLink}>
+            <Link
+              prefetch={false}
+              href={`/notes/filter/${encodeURIComponent(tag)}`}
+              className={css.menuLink}
+            >
               {tag === 'All' ? 'All notes' : tag}
             </Link>
           </li>

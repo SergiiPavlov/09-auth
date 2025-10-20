@@ -1,27 +1,43 @@
-import { createNote as _createNote } from './api/notes';
-// HW-08 compatibility: expose the API surface at lib/api.ts as required by the validator.
-// The actual implementations live in ./api/notes.ts and are fully typed.
-export type { Note, NoteTag } from '@/types/note';
-export type { FetchNotesResponse } from './api/notes';
-export {fetchNotes, fetchNoteById, updateNote, deleteNote} from './api/notes';
-
-// ---- Lecture-compatible API surface ----
-export type Category = { id: string; name: string };
+import { api } from '@/lib/api/api';
+import type { NoteTag } from '@/types/note';
 
 export type NewNoteData = {
   title: string;
   content: string;
-  categoryId: string;
+  tag?: NoteTag;
+  categoryId?: string;
 };
 
-export async function getCategories(): Promise<Category[]> {
-  const tags = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'];
-  return tags.map(t => ({ id: t.toLowerCase(), name: t }));
+/**
+ * Create a new note (cookie-auth required).
+ */
+export async function createNote(data: NewNoteData) {
+  const payload: Record<string, any> = {
+    title: data.title,
+    content: data.content,
+  };
+  if (data.tag) {
+    payload.tag = data.tag;
+  } else if (data.categoryId) {
+    payload.categoryId = data.categoryId;
+  }
+  const res = await api.post('/notes', payload);
+  return res.data;
 }
 
-export async function createNote(data: NewNoteData) {
-  const { title, content, categoryId } = data;
-  const tag = (categoryId.charAt(0).toUpperCase() + categoryId.slice(1)) as any;
-  return await _createNote({ title, content, tag } as any);
+/**
+ * Categories helper used by sidebar/create pages.
+ * If backend does not provide categories, we fallback to static tags.
+ */
+export async function getCategories(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await api.get('/notes/categories');
+    const items = res.data?.items || res.data?.categories || res.data;
+    if (Array.isArray(items) && items.length && items[0]?.id && items[0]?.name) {
+      return items as { id: string; name: string }[];
+    }
+  } catch {}
+  // Fallback to fixed tag set
+  const tags: NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'];
+  return tags.map((t) => ({ id: t.toLowerCase(), name: t }));
 }
-// ---- End lecture-compatible API ----

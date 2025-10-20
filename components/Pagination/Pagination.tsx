@@ -9,11 +9,7 @@ export interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export default function Pagination({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: PaginationProps) {
+export default function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   if (!totalPages || totalPages <= 1) return null;
 
   return (
@@ -21,8 +17,8 @@ export default function Pagination({
       containerClassName={css.pagination}
       pageClassName={css.pageItem}
       pageLinkClassName={css.pageLink}
-      activeClassName={css.active}       // подсветка на <li>
-      activeLinkClassName={css.active}   // и на <a> — на всякий случай
+      activeClassName={css.active} // подсветка на <li>
+      activeLinkClassName={css.active} // и на <a> — на всякий случай
       previousLabel="<"
       nextLabel=">"
       breakLabel="..."

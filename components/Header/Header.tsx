@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import css from './Header.module.css';
 import TagsMenu from '@/components/TagsMenu/TagsMenu';
+import AuthNavigation from '@/components/AuthNavigation/AuthNavigation';
 
 export default function Header() {
   return (
@@ -22,6 +23,7 @@ export default function Header() {
           </li>
         </ul>
       </nav>
+      <AuthNavigation />
     </header>
   );
 }

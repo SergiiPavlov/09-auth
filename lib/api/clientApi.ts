@@ -1,0 +1,60 @@
+'use client';
+import { api } from './api';
+import { useAuthStore } from '@/lib/store/authStore';
+import type { User } from '@/types/user';
+
+type RegisterDto = { username: string; email: string; password: string };
+type LoginDto = { email: string; password: string };
+
+export async function register(dto: RegisterDto) {
+  const res = await api.post('/auth/register', dto);
+  // сервер вернет user в cookies + тело с user (в учебном API)
+  const user: User = res.data?.user ?? res.data;
+  // обновим стор и редирект на /profile
+  useAuthStore.getState().setUser(user);
+  if (typeof window !== 'undefined') window.location.assign('/profile');
+  return user;
+}
+
+export async function login(dto: LoginDto) {
+  const res = await api.post('/auth/login', dto);
+  const user: User = res.data?.user ?? res.data;
+  useAuthStore.getState().setUser(user);
+  if (typeof window !== 'undefined') window.location.assign('/profile');
+  return user;
+}
+
+export async function logout() {
+  await api.post('/auth/logout');
+  useAuthStore.getState().clearIsAuthenticated();
+  if (typeof window !== 'undefined') window.location.assign('/sign-in');
+}
+
+export async function getSession() {
+  try {
+    const res = await api.get('/auth/session');
+    const user: User | null = res.data?.user ?? res.data ?? null;
+    if (user && user.email) {
+      useAuthStore.getState().setUser(user);
+    } else {
+      useAuthStore.getState().clearIsAuthenticated();
+    }
+    return user;
+  } catch {
+    useAuthStore.getState().clearIsAuthenticated();
+    return null;
+  }
+}
+
+// Экспорт базового клиентского инстанса (как было)
+export const clientApi = api;
+
+export async function updateMe(username: string) {
+  const res = await api.patch('/users/me', { username });
+  const user: import('@/types/user').User = res.data?.user ?? res.data;
+  // обновим стор
+  const { setUser } = (await import('@/lib/store/authStore')).useAuthStore.getState();
+  setUser(user);
+  if (typeof window !== 'undefined') window.location.assign('/profile');
+  return user;
+}

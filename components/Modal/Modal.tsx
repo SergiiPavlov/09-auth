@@ -57,6 +57,6 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
     <div className={css.backdrop} role="dialog" aria-modal="true" onClick={handleBackdropClick}>
       <div className={css.modal}>{children}</div>
     </div>,
-    container
+    container,
   );
 }

@@ -34,7 +34,9 @@ export default function NoteList({ notes }: NoteListProps) {
           <p className={css.content}>{n.content ?? ''}</p>
           <div className={css.footer}>
             <span className={css.tag}>{n.tag}</span>
-            <Link prefetch={false} className={css.link} href={`/notes/${n.id}`}>View details</Link>
+            <Link prefetch={false} className={css.link} href={`/notes/${n.id}`}>
+              View details
+            </Link>
             <button
               className={css.button}
               onClick={() => del.mutate(n.id)}
