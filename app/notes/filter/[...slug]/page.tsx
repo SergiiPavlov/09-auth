@@ -31,7 +31,9 @@ function normalizeTag(value?: string): NoteTag | 'All' {
   return matchingTag ?? ALL_TAG;
 }
 
+
 type NotesFilterPageProps = PageProps<{ slug?: string[] }>;
+
 
 export async function generateMetadata({ params }: NotesFilterPageProps): Promise<Metadata> {
   unstable_noStore();
