@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, PageProps } from 'next';
 import { unstable_noStore } from 'next/cache';
 import NotesClient from './Notes.client';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
@@ -31,9 +31,9 @@ function normalizeTag(value?: string): NoteTag | 'All' {
   return matchingTag ?? ALL_TAG;
 }
 
-interface NotesFilterPageProps {
-  params: { slug?: string[] };
-}
+
+type NotesFilterPageProps = PageProps<{ slug?: string[] }>;
+
 
 export async function generateMetadata({ params }: NotesFilterPageProps): Promise<Metadata> {
   unstable_noStore();
