@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/lib/store/authStore';
 import { useQuery } from '@tanstack/react-query';
 import { getSession } from '@/lib/api/clientApi';
-import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/lib/store/authStore';
 
 /**
  * AuthProvider: подтягивает сессию на клиенте и контролирует доступ к приватному контенту.
@@ -20,8 +19,6 @@ export default function AuthProvider({
 }) {
   const { isAuthenticated } = useAuthStore();
   const [checking, setChecking] = useState(true);
-  const pathname = usePathname();
-  const router = useRouter();
 
   const { isLoading } = useQuery({
     queryKey: ['auth', 'session'],
