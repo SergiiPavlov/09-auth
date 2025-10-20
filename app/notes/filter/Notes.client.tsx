@@ -21,11 +21,11 @@ const TAGS: readonly (NoteTag | 'All')[] = [
   'Shopping',
 ] as const;
 
-export default function NotesClient({ initialTag = 'All' }: { initialTag?: string }) {
+export default function NotesClient({ initialTag = 'All' }: { initialTag?: NoteTag | 'All' }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 400);
   const [page, setPage] = useState(1);
-  const [tag, setTag] = useState<string>(initialTag);
+  const [tag, setTag] = useState<NoteTag | 'All'>(initialTag);
 
   useEffect(() => {
     setTag(initialTag);
@@ -33,8 +33,13 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
     setSearch('');
   }, [initialTag]);
 
-  const tagForQuery = useMemo<NoteTag | undefined>(() => {
-    return TAGS.includes(tag as any) && tag !== 'All' ? (tag as NoteTag) : undefined;
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, tag]);
+
+  const tagForQuery = useMemo<string>(() => {
+    const normalizedTag = TAGS.includes(tag) ? tag : 'All';
+    return normalizedTag === 'All' ? '' : normalizedTag;
   }, [tag]);
 
   const { data, error, isPending, isPlaceholderData } = useQuery<FetchNotesResponse>({
@@ -48,27 +53,49 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
   });
 
   const totalPages = data?.totalPages ?? 1;
+  const hasNotes = (data?.notes?.length ?? 0) > 0;
 
   const handlePageChange = (next: number) => setPage(next);
+  const handleTagChange = (nextTag: string) => {
+    const normalizedTag = TAGS.includes(nextTag as NoteTag | 'All')
+      ? (nextTag as NoteTag | 'All')
+      : 'All';
+    setTag(normalizedTag);
+  };
 
   return (
     <div className={css.app}>
-      {' '}
       <div className={css.toolbar}>
         <SearchBox value={search} onChange={setSearch} />
-
-        <Link prefetch={false} href="/notes/action/create" className={css.button}>
-          Create note +
-        </Link>
+        <div className={css.toolbarActions}>
+          <label className={css.selectLabel}>
+            <span className={css.selectLabelText}>Tag</span>
+            <select
+              className={css.select}
+              value={tag}
+              onChange={(event) => handleTagChange(event.target.value)}
+            >
+              {TAGS.map((option) => (
+                <option key={option} value={option}>
+                  {option === 'All' ? 'All notes' : option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Link prefetch={false} href="/notes/action/create" className={css.button}>
+            Create note +
+          </Link>
+        </div>
       </div>
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
-      {isPending && <p>Loading, please wait...</p>}
+      {isPending && !isPlaceholderData && <p>Loading, please wait...</p>}
       {error && (
         <p>
           Could not fetch the list of notes.
           {error instanceof Error ? ` ${error.message}` : ''}
         </p>
       )}
+      {!isPending && !error && !hasNotes && <p>No notes found.</p>}
       <NoteList notes={data?.notes ?? []} />
     </div>
   );

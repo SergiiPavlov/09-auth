@@ -2,31 +2,48 @@ import { NextResponse } from 'next/server';
 import { api } from '../../api';
 import { cookies } from 'next/headers';
 import { isAxiosError } from 'axios';
-import { logErrorResponse } from '../../_utils/utils';
+import { appendSetCookieHeaders, logErrorResponse, toUpstreamCookieHeader } from '../../_utils/utils';
+import { serialize } from 'cookie';
 
 export async function POST() {
   try {
     const cookieStore = await cookies();
+    const cookieHeader = toUpstreamCookieHeader(cookieStore);
 
-    const accessToken = cookieStore.get('accessToken')?.value;
-    const refreshToken = cookieStore.get('refreshToken')?.value;
-
-    await api.post('auth/logout', null, {
+    const apiRes = await api.post('/auth/logout', null, {
       headers: {
-        Cookie: `accessToken=${accessToken}; refreshToken=${refreshToken}`,
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
     });
 
     cookieStore.delete('accessToken');
     cookieStore.delete('refreshToken');
 
-    return NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
+    const response = NextResponse.json(apiRes.data ?? { message: 'Logged out successfully' }, {
+      status: apiRes.status ?? 200,
+    });
+
+    const upstreamCookies = apiRes.headers['set-cookie'];
+    if (upstreamCookies && (Array.isArray(upstreamCookies) ? upstreamCookies.length > 0 : true)) {
+      appendSetCookieHeaders(response, upstreamCookies);
+    } else {
+      const cookieOptions = {
+        path: '/',
+        maxAge: 0,
+        httpOnly: true,
+        sameSite: 'lax' as const,
+      };
+      response.headers.append('Set-Cookie', serialize('accessToken', '', cookieOptions));
+      response.headers.append('Set-Cookie', serialize('refreshToken', '', cookieOptions));
+    }
+
+    return response;
   } catch (error) {
     if (isAxiosError(error)) {
       logErrorResponse(error.response?.data);
       return NextResponse.json(
         { error: error.message, response: error.response?.data },
-        { status: error.status },
+        { status: error.response?.status ?? 500 },
       );
     }
     logErrorResponse({ message: (error as Error).message });
