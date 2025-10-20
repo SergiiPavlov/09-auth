@@ -12,7 +12,14 @@ import { fetchNotes, type FetchNotesResponse } from '@/lib/api/notes';
 import type { NoteTag } from '@/types/note';
 
 const PER_PAGE = 12;
-const TAGS: readonly (NoteTag | 'All')[] = ['All', 'Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
+const TAGS: readonly (NoteTag | 'All')[] = [
+  'All',
+  'Todo',
+  'Work',
+  'Personal',
+  'Meeting',
+  'Shopping',
+] as const;
 
 export default function NotesClient({ initialTag = 'All' }: { initialTag?: string }) {
   const [search, setSearch] = useState('');
@@ -45,16 +52,16 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
   const handlePageChange = (next: number) => setPage(next);
 
   return (
-    <div className={css.app}>      <div className={css.toolbar}>
+    <div className={css.app}>
+      {' '}
+      <div className={css.toolbar}>
         <SearchBox value={search} onChange={setSearch} />
 
         <Link prefetch={false} href="/notes/action/create" className={css.button}>
           Create note +
         </Link>
       </div>
-
       <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
-
       {isPending && <p>Loading, please wait...</p>}
       {error && (
         <p>
@@ -62,7 +69,6 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
           {error instanceof Error ? ` ${error.message}` : ''}
         </p>
       )}
-
       <NoteList notes={data?.notes ?? []} />
     </div>
   );

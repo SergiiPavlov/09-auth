@@ -10,7 +10,11 @@ export default function NoteDetailsClient() {
   const idNum = Number(rawId);
   const keyId = Number.isFinite(idNum) ? idNum : rawId; // никакого NaN в ключах
 
-  const { data: note, isLoading, error } = useQuery({
+  const {
+    data: note,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['note', { id: keyId }],
     queryFn: () => fetchNoteById(rawId),
     refetchOnMount: false, // в API передаём строковый id

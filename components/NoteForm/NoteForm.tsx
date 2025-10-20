@@ -11,12 +11,13 @@ import { useNoteDraftStore, initialDraft, type NoteDraft } from '@/lib/store/not
 
 const TAGS: readonly NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
 
-  const MIN_TITLE = 3;
+const MIN_TITLE = 3;
 
 export default function NoteForm({ categories }: { categories?: { id: string; name: string }[] }) {
-  const categoriesOptions = (categories && categories.length)
-    ? categories.map(c => ({ id: c.id, name: c.name }))
-    : TAGS.map(t => ({ id: t.toLowerCase(), name: t }));
+  const categoriesOptions =
+    categories && categories.length
+      ? categories.map((c) => ({ id: c.id, name: c.name }))
+      : TAGS.map((t) => ({ id: t.toLowerCase(), name: t }));
   const router = useRouter();
   const qc = useQueryClient();
   const draft = useNoteDraftStore((state) => state.draft);
@@ -36,7 +37,7 @@ export default function NoteForm({ categories }: { categories?: { id: string; na
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target as HTMLInputElement & { name: keyof NoteDraft };
     const fieldName = name as keyof NoteDraft;
@@ -102,7 +103,7 @@ export default function NoteForm({ categories }: { categories?: { id: string; na
           value={draft.content ?? initialDraft.content}
           onChange={handleChange}
         />
-</div>
+      </div>
 
       <div className={css.formGroup}>
         <label htmlFor="tag">Tag</label>
@@ -113,7 +114,7 @@ export default function NoteForm({ categories }: { categories?: { id: string; na
           value={draft.tag ?? initialDraft.tag}
           onChange={handleChange}
         >
-          {categoriesOptions.map(opt => (
+          {categoriesOptions.map((opt) => (
             <option key={opt.id} value={opt.id}>
               {opt.name}
             </option>

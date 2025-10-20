@@ -1,0 +1,9 @@
+Local build tips
+----------------
+1) npm install
+2) npm run format   # optional
+3) npm run build
+4) npm start
+
+If you see auth-related 401 on /notes or /profile as a guest, this is expected.
+Login or Sign up first; cookies are set by notehub-api.goit.study via our app/api/* proxy.

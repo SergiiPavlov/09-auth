@@ -7,7 +7,13 @@ import type { NoteTag } from '@/types/note';
 
 export const dynamic = 'force-dynamic';
 
-const FILTERABLE_TAGS: readonly NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
+const FILTERABLE_TAGS: readonly NoteTag[] = [
+  'Todo',
+  'Work',
+  'Personal',
+  'Meeting',
+  'Shopping',
+] as const;
 const ALL_TAG = 'All';
 const APP_URL = 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';

@@ -1,21 +1,50 @@
-# Codex Agent Brief — NoteHub (HW-09: Auth + New Backend)
+# Codex Agent Brief — NoteHub HW‑09 (Auth + New Backend)
 
-> **Purpose**: give you context and guardrails. **Do not** micromanage tasks here.  
-> Always derive tasks from the **official HW-09 technical assignment** and current repo state.
+## tl;dr
 
-## 1) Sources of truth (priority order)
-1. **Official HW-09 tech assignment (lectures 17–18)**:
-   - New backend: `https://notehub-api.goit.study` with cookie auth.
-   - Routes split: `(auth routes)` → `/sign-in`, `/sign-up`; `(private routes)` → `/profile`, `/notes/*`.
-   - Provide `app/api/*` server routes from course package; no old mocks.
-   - API layer split: `lib/api/api.ts` (axios instance withCredentials), `clientApi.ts`, `serverApi.ts`.
-   - State: Zustand `authStore` (user, isAuthenticated, setUser, clearIsAuthenticated).
-   - `middleware.ts` for route protection; `AuthProvider` for client session checks.
-   - Styles: copy HW-09 CSS Modules into `app/*`.
-2. **Repository state**: minimal diffs to meet HW-09; keep accepted HW-08 features (TanStack Query, notes, draft).
-3. **Style assets**: HW-09 styles bundle.
-4. **Team conventions**:
-   - Next.js App Router, TypeScript, Axios, TanStack Query, Zustand (+persist for drafts), CSS Modules, Prettier.
-   - Folders: `components/*`, `types/*`, `lib/api/*`, `lib/store/*`, pages under `app/*`.
+Работаем над ДЗ‑09. Входные ограничения: **ты (Codex) не можешь принимать ZIP/DOCX/PDF**, только короткие тексты и скриншоты.  
+Значит, **не проси у нас файлы** — ориентируйся на это описание, на структуру репозитория и диффы в PR.
 
-> On conflicts — follow the **official assignment**. Avoid scope creep. Keep PRs small & focused.
+## Источники истины (приоритет)
+
+1. **Официальное ТЗ HW‑09 + лекции 17–18 (конспект ниже)**.
+2. **Текущее состояние репозитория** (ветка задачи).
+3. **Стилей пакет HW‑09** уже встроен в проект: `app/styles/*.module.css`.
+4. **Серверные роуты** уже встроены: `app/api/*` → прокси на `https://notehub-api.goit.study`.
+
+Если видишь конфликт — следуй **официальному ТЗ**. Не расширяй скоп. Никаких «улучшений» сверх задания.
+
+## Конспект требований HW‑09
+
+- **Новый бэкенд**: `https://notehub-api.goit.study`, авторизация через **cookie**.
+- **Серверные роуты** (прокси) лежат в `app/api/*` и ходят к новому бэкенду.
+- **Группы маршрутов**:
+  - `(auth routes)` → `/sign-in`, `/sign-up` (доступны только неавторизованным).
+  - `(private routes)` → `/profile`, а также весь `/notes/*` (доступны только авторизованным).
+- **Слой API** разделён на:
+  - `lib/api/api.ts` — axios-инстанс (`withCredentials: true`, `baseURL = NEXT_PUBLIC_API_URL + '/api'`).
+  - `lib/api/clientApi.ts` — вызовы с клиента.
+  - `lib/api/serverApi.ts` — вызовы c сервера (передаём cookie из `next/headers`).
+- **Состояние авторизации**: Zustand store `authStore` (`user`, `isAuthenticated`, `setUser`, `clearIsAuthenticated`).
+- **Защита**:
+  - `middleware.ts` — редиректы между публичными/приватными маршрутами в зависимости от cookie.
+  - `AuthProvider` — клиентская проверка сессии и показ лоадера.
+- **Стили**: CSS‑модули для страниц `/sign-in`, `/sign-up`, `/profile`, `/profile/edit`, `AuthNavigation` — уже в `app/styles`.
+- **.env.local**: `NEXT_PUBLIC_API_URL=http://localhost:3000` локально; на проде — URL сайта.
+
+## Что считать «готово» на старте PR
+
+- `app/api/*` присутствует; старые моки `app/api/notehub/*` удалены.
+- `lib/api/{api,clientApi,serverApi}.ts` созданы.
+- `app/styles/*.module.css` добавлены.
+- `.env.local` заполнен.
+- `README.md` обновлён (см. в репозитории).
+
+## Как проверять (для тебя, Codex)
+
+- Не требуй архивы — **их нельзя загрузить**.
+- Запросы изменений формулируй через:
+  - «Создайте файл … со следующим содержимым: …»
+  - «Переместите … в …»
+  - «Удалите …»
+- Проверяй соответствие ТЗ: рутинги, прокси, состояние auth, стили, env.

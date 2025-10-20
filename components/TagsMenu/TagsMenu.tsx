@@ -57,21 +57,17 @@ export default function TagsMenu() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
-        onClick={() => setIsOpen(prev => !prev)}
+        onClick={() => setIsOpen((prev) => !prev)}
       >
         Notes ▾
       </button>
 
       {isOpen && (
-        <ul
-          id={menuId}
-          className={css.menuList}
-          role="menu"
-          aria-labelledby={buttonId}
-        >
-          {tags.map(tag => (
+        <ul id={menuId} className={css.menuList} role="menu" aria-labelledby={buttonId}>
+          {tags.map((tag) => (
             <li key={tag} className={css.menuItem} role="none">
-              <Link prefetch={false}
+              <Link
+                prefetch={false}
                 href={
                   tag === ALL_TAG
                     ? '/notes/filter/All'
