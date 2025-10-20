@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSession } from '@/lib/api/clientApi';
+import { getSession, logout } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
 
 /**
@@ -19,6 +19,7 @@ export default function AuthProvider({
 }) {
   const { isAuthenticated } = useAuthStore();
   const [checking, setChecking] = useState(true);
+  const hasLoggedOutRef = useRef(false);
 
   const { isLoading } = useQuery({
     queryKey: ['auth', 'session'],
@@ -30,6 +31,17 @@ export default function AuthProvider({
     // Когда кверя впервые отработала, перестаём показывать лоадер
     if (!isLoading) setChecking(false);
   }, [isLoading]);
+
+  useEffect(() => {
+    if (checking || !enforceAuth || isAuthenticated || hasLoggedOutRef.current) {
+      return;
+    }
+
+    hasLoggedOutRef.current = true;
+    logout().catch(() => {
+      /* noop */
+    });
+  }, [checking, enforceAuth, isAuthenticated]);
 
   if (checking) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Checking session…</div>;
