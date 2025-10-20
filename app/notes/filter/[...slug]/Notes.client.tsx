@@ -21,11 +21,11 @@ const TAGS: readonly (NoteTag | 'All')[] = [
   'Shopping',
 ] as const;
 
-export default function NotesClient({ initialTag = 'All' }: { initialTag?: string }) {
+export default function NotesClient({ initialTag = 'All' }: { initialTag?: NoteTag | 'All' }) {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 400);
   const [page, setPage] = useState(1);
-  const [tag, setTag] = useState<string>(initialTag);
+  const [tag, setTag] = useState<NoteTag | 'All'>(initialTag);
 
   useEffect(() => {
     setTag(initialTag);
@@ -37,8 +37,9 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
     setPage(1);
   }, [debouncedSearch, tag]);
 
-  const tagForQuery = useMemo<NoteTag | undefined>(() => {
-    return TAGS.includes(tag as any) && tag !== 'All' ? (tag as NoteTag) : undefined;
+  const tagForQuery = useMemo<string>(() => {
+    const normalizedTag = TAGS.includes(tag) ? tag : 'All';
+    return normalizedTag === 'All' ? '' : normalizedTag;
   }, [tag]);
 
   const { data, error, isPending, isPlaceholderData } = useQuery<FetchNotesResponse>({
@@ -56,7 +57,10 @@ export default function NotesClient({ initialTag = 'All' }: { initialTag?: strin
 
   const handlePageChange = (next: number) => setPage(next);
   const handleTagChange = (nextTag: string) => {
-    setTag(nextTag);
+    const normalizedTag = TAGS.includes(nextTag as NoteTag | 'All')
+      ? (nextTag as NoteTag | 'All')
+      : 'All';
+    setTag(normalizedTag);
   };
 
   return (
