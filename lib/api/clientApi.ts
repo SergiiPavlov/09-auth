@@ -5,39 +5,36 @@ import { useAuthStore } from '@/lib/store/authStore';
 import type { User } from '@/types/user';
 import { isAxiosError } from 'axios';
 
-// Базовые типы полезной нагрузки
-type UnknownRecord = Record<PropertyKey, unknown>;
-type UserPayload = unknown;
-
-function isUserRecord(value: UnknownRecord): value is User {
-  const hasValidUsername =
-    'username' in value && typeof value.username === 'string';
-  const hasValidEmail = 'email' in value && typeof value.email === 'string';
-  const hasValidAvatar =
-    !('avatar' in value) ||
-    value.avatar === null ||
-    typeof value.avatar === 'string';
-  const hasValidAvatarURL =
-    !('avatarURL' in value) ||
-    value.avatarURL === null ||
-    typeof value.avatarURL === 'string';
-  const hasValidId =
-    !('id' in value) || value.id === undefined || typeof value.id === 'string';
-
-  return (
-    hasValidUsername &&
-    hasValidEmail &&
-    hasValidAvatar &&
-    hasValidAvatarURL &&
-    hasValidId
-  );
+// Guard: простой объект (не null, не массив)
+function isPlainObject(x: unknown): x is Record<string, unknown> {
+  return !!x && typeof x === 'object' && !Array.isArray(x);
 }
 
-function pickUserFromPayload(payload: unknown): User | null {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
+/** Нормализация объекта пользователя (учитывает avatar/avatarURL) */
+function normalizeUser(x: unknown): User | null {
+  if (!isPlainObject(x)) return null;
 
+  const email = typeof x['email'] === 'string' ? (x['email'] as string) : null;
+  const username =
+    typeof x['username'] === 'string' ? (x['username'] as string) : null;
+
+  if (!email || !username) return null;
+
+  const avatar =
+    typeof x['avatar'] === 'string'
+      ? (x['avatar'] as string)
+      : typeof x['avatarURL'] === 'string'
+      ? (x['avatarURL'] as string)
+      : null;
+
+  return { email, username, avatar };
+}
+
+/** Рекурсивно вытаскиваем User из произвольной формы ответа */
+function pickUserFromPayload(payload: unknown): User | null {
+  if (payload == null) return null;
+
+  // Если пришёл массив — найдём первого валидного пользователя
   if (Array.isArray(payload)) {
     for (const item of payload) {
       const candidate = pickUserFromPayload(item);
@@ -48,30 +45,26 @@ function pickUserFromPayload(payload: unknown): User | null {
     return null;
   }
 
-  const data = payload as UnknownRecord;
+  // Попытка нормализовать «как есть»
+  const normalized = normalizeUser(payload);
+  if (normalized) return normalized;
 
-  if (isUserRecord(data)) {
-    return data;
-  }
-
-  if (data.user) {
-    const nested = pickUserFromPayload(data.user);
-    if (nested) {
-      return nested;
-    }
-  }
-
-  if (data.data) {
-    const nested = pickUserFromPayload(data.data);
-    if (nested) {
-      return nested;
+  // Частые обёртки: { user }, { data }, { result }, { payload }
+  if (isPlainObject(payload)) {
+    const container = payload as Record<string, unknown>;
+    const possibleKeys = ['user', 'data', 'result', 'payload'] as const;
+    for (const key of possibleKeys) {
+      if (key in container) {
+        const nested = pickUserFromPayload(container[key]);
+        if (nested) return nested;
+      }
     }
   }
 
   return null;
 }
 
-/** Для совместимости с остальным кодом */
+/** Совместимый слой-обёртка */
 function extractUser(payload: unknown): User | null {
   return pickUserFromPayload(payload);
 }
@@ -83,21 +76,21 @@ type AuthDto = { email: string; password: string };
 
 /** Register */
 export async function register(dto: AuthDto): Promise<User | null> {
-  const res = await api.post<UserPayload>('/auth/register', dto);
-  const user = extractUser((res as any).data);
+  const res = await api.post<unknown>('/auth/register', dto);
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
 /** Login */
 export async function login(dto: AuthDto): Promise<User | null> {
-  const res = await api.post<UserPayload>('/auth/login', dto);
-  const user = extractUser((res as any).data);
+  const res = await api.post<unknown>('/auth/login', dto);
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
-/** Logout: проглатываем 401/403, стор всё равно чистим */
+/** Logout: проглатываем 401/403, стор чистим всегда */
 export async function logout(): Promise<void> {
   try {
     await api.post<void>('/auth/logout');
@@ -116,24 +109,24 @@ export async function logout(): Promise<void> {
 /** Session check — возвращает пользователя или null */
 export async function getSession(): Promise<User | null> {
   try {
-    const res = await api.get('/auth/session');
-    const user = pickUserFromPayload(res.data);
-    if (user && user.email) {
+    const res = await api.get<unknown>('/auth/session');
+    const user = extractUser(res.data);
+    if (user) {
       useAuthStore.getState().setUser(user);
       return user;
     }
     return null;
-  } catch (_err) {
+  } catch {
     useAuthStore.getState().clearIsAuthenticated();
     return null;
   }
 }
 
-/** /users/me (SSR-несовместимых зависимостей тут нет) */
+/** /users/me — получить профиль */
 export async function getMe(): Promise<User | null> {
   try {
-    const res = await api.get<UserPayload>('/users/me');
-    const user = extractUser((res as any).data);
+    const res = await api.get<unknown>('/users/me');
+    const user = extractUser(res.data);
     if (user) {
       useAuthStore.getState().setUser(user);
       return user;
@@ -153,8 +146,8 @@ export async function getMe(): Promise<User | null> {
 
 /** PATCH /users/me — обновляем username */
 export async function updateMe(username: string): Promise<User | null> {
-  const res = await api.patch<UserPayload>('/users/me', { username });
-  const user = extractUser((res as any).data);
+  const res = await api.patch<unknown>('/users/me', { username });
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
