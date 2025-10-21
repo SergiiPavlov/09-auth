@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function upstreamBase() {
-  const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-  // fall back to same origin '/api' for local dev (if env is not provided)
-  return base ? `${base}/api` : '/api';
+const UPSTREAM = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+
+function upstreamUrl(path: string) {
+  if (!UPSTREAM) {
+    throw new Error('NEXT_PUBLIC_API_URL is not set');
+  }
+  return `${UPSTREAM}/api${path}`;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const url = `${upstreamBase()}/notes/categories`;
+    const url = upstreamUrl('/notes/categories');
     const cookie = req.headers.get('cookie') || undefined;
 
     const res = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(cookie ? { cookie } : {}),
-      },
+      headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
       cache: 'no-store',
     });
 
@@ -27,14 +27,9 @@ export async function GET(req: NextRequest) {
       ? NextResponse.json(body, { status: res.status })
       : new NextResponse(body as any, { status: res.status });
 
-    // pass through Set-Cookie from upstream if present
     const setCookie = res.headers.get('set-cookie');
     if (setCookie) {
-      // In Node runtime multiple cookies come as comma-joined; split conservatively
-      const parts = setCookie.split(/,(?=[^;]+?=)/g);
-      for (const c of parts) {
-        nextRes.headers.append('Set-Cookie', c);
-      }
+      for (const c of setCookie.split(/,(?=[^;]+?=)/g)) nextRes.headers.append('Set-Cookie', c);
     }
 
     return nextRes;
