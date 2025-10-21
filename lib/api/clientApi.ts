@@ -49,15 +49,15 @@ type LoginDto = { email: string; password: string };
 
 export async function register(dto: RegisterDto) {
   const res = await api.post('/auth/register', dto);
-  const user: User = res.data?.user ?? res.data;
-  useAuthStore.getState().setUser(user);
+  const user = extractUser(res.data);
+  if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
 export async function login(dto: LoginDto) {
   const res = await api.post('/auth/login', dto);
-  const user: User = res.data?.user ?? res.data;
-  useAuthStore.getState().setUser(user);
+  const user = extractUser(res.data);
+  if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
@@ -72,10 +72,10 @@ export async function getSession() {
     const user = pickUserFromPayload(res.data);
     if (user && user.email) {
       useAuthStore.getState().setUser(user);
-    } else {
-      useAuthStore.getState().clearIsAuthenticated();
+      return user;
     }
-    return user;
+    useAuthStore.getState().clearIsAuthenticated();
+    return null;
   } catch {
     useAuthStore.getState().clearIsAuthenticated();
     return null;
@@ -87,7 +87,7 @@ export const clientApi = api;
 
 export async function updateMe(username: string) {
   const res = await api.patch('/users/me', { username });
-  const user: User = res.data?.user ?? res.data;
-  useAuthStore.getState().setUser(user);
+  const user = extractUser(res.data);
+  if (user) useAuthStore.getState().setUser(user);
   return user;
 }
