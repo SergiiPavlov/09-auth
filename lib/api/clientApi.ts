@@ -78,7 +78,6 @@ export async function logout() {
       throw err;
     }
   } finally {
-    // В любом случае очищаем клиентское состояние
     useAuthStore.getState().clearIsAuthenticated();
   }
 }
