@@ -1,6 +1,7 @@
 import type { NextResponse } from 'next/server';
 
 export function logErrorResponse(errorObj: unknown): void {
+  if (process.env.NODE_ENV === 'production') return;
   const green = '\x1b[32m';
   const yellow = '\x1b[33m';
   const reset = '\x1b[0m';

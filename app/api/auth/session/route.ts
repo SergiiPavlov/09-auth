@@ -10,29 +10,32 @@ export async function GET() {
     const accessToken = cookieStore.get('accessToken')?.value;
     const refreshToken = cookieStore.get('refreshToken')?.value;
 
-    if (accessToken) {
-      return NextResponse.json({ success: true });
+    // Нет токенов — нет смысла дергать апстрим.
+    if (!accessToken && !refreshToken) {
+      return NextResponse.json({ user: null }, { status: 200 });
     }
 
-    if (refreshToken) {
-      const cookieHeader = toUpstreamCookieHeader(cookieStore);
-      const apiRes = await api.get('/auth/session', {
-        headers: {
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-        },
-      });
+    const cookieHeader = toUpstreamCookieHeader(cookieStore);
+    const upstream = await api.get('/auth/session', {
+      headers: { ...(cookieHeader ? { Cookie: cookieHeader } : {}) },
+    });
 
-      const response = NextResponse.json({ success: true }, { status: 200 });
-      appendSetCookieHeaders(response, apiRes.headers['set-cookie']);
-      return response;
-    }
-    return NextResponse.json({ success: false }, { status: 200 });
+    const res = NextResponse.json(upstream.data ?? { user: null }, { status: upstream.status || 200 });
+
+    // Типобезопасно достаём Set-Cookie и прокидываем клиенту
+    const setCookie = (upstream.headers as Record<string, unknown>)['set-cookie'] as
+      | string
+      | string[]
+      | undefined;
+    appendSetCookieHeaders(res, setCookie);
+
+    return res;
   } catch (error) {
     if (isAxiosError(error)) {
       logErrorResponse(error.response?.data);
-      return NextResponse.json({ success: false }, { status: 200 });
+      return NextResponse.json({ user: null }, { status: 200 });
     }
     logErrorResponse({ message: (error as Error).message });
-    return NextResponse.json({ success: false }, { status: 200 });
+    return NextResponse.json({ user: null }, { status: 200 });
   }
 }
