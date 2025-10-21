@@ -2,7 +2,51 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { api } from '../../api';
 import { isAxiosError } from 'axios';
-import { appendSetCookieHeaders, logErrorResponse, toUpstreamCookieHeader } from '../../_utils/utils';
+import {
+  appendSetCookieHeaders,
+  logErrorResponse,
+  toUpstreamCookieHeader,
+} from '../../_utils/utils';
+
+type UnknownRecord = Record<string, unknown>;
+
+function pickUserFromPayload(payload: unknown): UnknownRecord | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const picked = pickUserFromPayload(item);
+      if (picked) {
+        return picked;
+      }
+    }
+    return null;
+  }
+
+  const data = payload as UnknownRecord;
+
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (typeof data.email === 'string') {
+    return data;
+  }
+
+  return null;
+}
 
 export async function GET() {
   try {
@@ -21,8 +65,11 @@ export async function GET() {
       },
     });
 
-    const responseBody = apiRes.data ?? null;
-    const response = NextResponse.json(responseBody, { status: apiRes.status });
+
+    const user = pickUserFromPayload(apiRes.data);
+    const responsePayload = user ? { user } : null;
+    const response = NextResponse.json(responsePayload, { status: apiRes.status });
+
     appendSetCookieHeaders(response, apiRes.headers['set-cookie']);
     return response;
   } catch (error) {
