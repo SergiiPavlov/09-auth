@@ -9,58 +9,39 @@ import { isAxiosError } from 'axios';
 type UnknownRecord = Record<string, unknown>;
 type UserPayload = unknown;
 
-/** Узкое, явное сужение к типу User */
-function isUser(x: unknown): x is User {
-  if (!x || typeof x !== 'object') return false;
-  const o = x as UnknownRecord;
-  return typeof o['email'] === 'string' && typeof o['username'] === 'string';
-}
-
-/** Нормализация объекта пользователя (учитывает avatar/avatarURL) */
-function normalizeUser(x: unknown): User | null {
-  if (!x || typeof x !== 'object') return null;
-  const o = x as UnknownRecord;
-
-  const email = typeof o['email'] === 'string' ? (o['email'] as string) : null;
-  const username = typeof o['username'] === 'string' ? (o['username'] as string) : null;
-
-  if (!email || !username) return null;
-
-  const avatar =
-    typeof o['avatar'] === 'string'
-      ? (o['avatar'] as string)
-      : typeof o['avatarURL'] === 'string'
-      ? (o['avatarURL'] as string)
-      : null;
-
-  return { email, username, avatar };
-}
-
-/** Рекурсивно вытаскиваем User из произвольной формы ответа */
 function pickUserFromPayload(payload: unknown): User | null {
-  if (!payload || typeof payload !== 'object') return null;
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
 
-  // Если пришёл массив — ищем первого валидного User
   if (Array.isArray(payload)) {
     for (const item of payload) {
       const candidate = pickUserFromPayload(item);
-      if (candidate) return candidate;
+      if (candidate) {
+        return candidate;
+      }
     }
     return null;
   }
 
-  // Пробуем нормализовать «как есть»
-  const normalized = normalizeUser(payload);
-  if (normalized) return normalized;
+  const data = payload as UnknownRecord;
 
-  // Частые обёртки бэкендов: { user }, { data }, { result }, { payload }
-  const container = payload as UnknownRecord;
-  const possibleKeys = ['user', 'data', 'result', 'payload'];
-  for (const key of possibleKeys) {
-    if (key in container) {
-      const nested = pickUserFromPayload((container as UnknownRecord)[key]);
-      if (nested) return nested;
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
     }
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (typeof data.email === 'string') {
+    return data as User;
   }
 
   return null;
@@ -111,9 +92,9 @@ export async function logout(): Promise<void> {
 /** Session check — возвращает пользователя или null */
 export async function getSession(): Promise<User | null> {
   try {
-    const res = await api.get<UserPayload>('/auth/session');
+    const res = await api.get('/auth/session');
     const user = pickUserFromPayload(res.data);
-    if (user) {
+    if (user && user.email) {
       useAuthStore.getState().setUser(user);
       return user;
     }
