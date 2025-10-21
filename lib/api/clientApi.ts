@@ -7,32 +7,41 @@ import { isAxiosError } from 'axios';
 
 type AnyRecord = Record<string, unknown>;
 
-/** Type guard: checks that value looks like our User */
-function isUser(v: unknown): v is User {
-  if (!v || typeof v !== 'object') return false;
-  const obj = v as AnyRecord;
-  return typeof obj.email === 'string' && typeof obj.username === 'string';
-}
+function pickUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
 
-/** Some endpoints may wrap/shape user differently – unwrap safely */
-function extractUser(payload: unknown): User | null {
-  if (!payload) return null;
-
-  // direct user
-  if (isUser(payload)) return payload;
-
-  // wrapped { user: {...} }
-  if (typeof payload === 'object' && payload !== null) {
-    const rec = payload as AnyRecord;
-    if (isUser(rec.user)) return rec.user;
-
-    // arrays (defensive)
-    if (Array.isArray(payload)) {
-      for (const item of payload) {
-        if (isUser(item)) return item;
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const candidate = pickUserFromPayload(item);
+      if (candidate) {
+        return candidate;
       }
     }
+    return null;
   }
+
+  const data = payload as UnknownRecord;
+
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (typeof data.email === 'string') {
+    return data as User;
+  }
+
   return null;
 }
 
@@ -78,8 +87,8 @@ export async function logout() {
 export async function getSession() {
   try {
     const res = await api.get('/auth/session');
-    const user = extractUser(res.data);
-    if (user) {
+    const user = pickUserFromPayload(res.data);
+    if (user && user.email) {
       useAuthStore.getState().setUser(user);
       return user;
     }
