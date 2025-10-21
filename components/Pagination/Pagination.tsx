@@ -14,18 +14,16 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
   return (
     <ReactPaginate
-      containerClassName={css.pagination}
+      className={css.pagination}
       pageClassName={css.pageItem}
       pageLinkClassName={css.pageLink}
-      activeClassName={css.active} // подсветка на <li>
-      activeLinkClassName={css.active} // и на <a> — на всякий случай
+      activeClassName={css.active}
       previousLabel="<"
       nextLabel=">"
-      breakLabel="..."
+      breakLabel="…"
       pageCount={totalPages}
       forcePage={Math.max(0, (currentPage ?? 1) - 1)}
-      onPageChange={(sel: { selected: number }) => onPageChange(sel.selected + 1)}
-      // Доп. классы (если нужны):
+      onPageChange={({ selected }) => onPageChange(selected + 1)}
       previousClassName={css.pageItem}
       previousLinkClassName={css.pageLink}
       nextClassName={css.pageItem}
