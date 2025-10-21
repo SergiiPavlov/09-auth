@@ -5,32 +5,26 @@ import { useAuthStore } from '@/lib/store/authStore';
 import type { User } from '@/types/user';
 import { isAxiosError } from 'axios';
 
-// Базовые типы полезной нагрузки
-type UnknownRecord = Record<string, unknown>;
-type UserPayload = unknown;
-
-/** Узкое, явное сужение к типу User */
-function isUser(x: unknown): x is User {
-  if (!x || typeof x !== 'object') return false;
-  const o = x as UnknownRecord;
-  return typeof o['email'] === 'string' && typeof o['username'] === 'string';
+// Guard: простой объект (не null, не массив)
+function isPlainObject(x: unknown): x is Record<string, unknown> {
+  return !!x && typeof x === 'object' && !Array.isArray(x);
 }
 
 /** Нормализация объекта пользователя (учитывает avatar/avatarURL) */
 function normalizeUser(x: unknown): User | null {
-  if (!x || typeof x !== 'object') return null;
-  const o = x as UnknownRecord;
+  if (!isPlainObject(x)) return null;
 
-  const email = typeof o['email'] === 'string' ? (o['email'] as string) : null;
-  const username = typeof o['username'] === 'string' ? (o['username'] as string) : null;
+  const email = typeof x['email'] === 'string' ? (x['email'] as string) : null;
+  const username =
+    typeof x['username'] === 'string' ? (x['username'] as string) : null;
 
   if (!email || !username) return null;
 
   const avatar =
-    typeof o['avatar'] === 'string'
-      ? (o['avatar'] as string)
-      : typeof o['avatarURL'] === 'string'
-      ? (o['avatarURL'] as string)
+    typeof x['avatar'] === 'string'
+      ? (x['avatar'] as string)
+      : typeof x['avatarURL'] === 'string'
+      ? (x['avatarURL'] as string)
       : null;
 
   return { email, username, avatar };
@@ -38,9 +32,9 @@ function normalizeUser(x: unknown): User | null {
 
 /** Рекурсивно вытаскиваем User из произвольной формы ответа */
 function pickUserFromPayload(payload: unknown): User | null {
-  if (!payload || typeof payload !== 'object') return null;
+  if (payload == null) return null;
 
-  // Если пришёл массив — ищем первого валидного User
+  // Если пришёл массив — найдём первого валидного пользователя
   if (Array.isArray(payload)) {
     for (const item of payload) {
       const candidate = pickUserFromPayload(item);
@@ -49,24 +43,26 @@ function pickUserFromPayload(payload: unknown): User | null {
     return null;
   }
 
-  // Пробуем нормализовать «как есть»
+  // Попытка нормализовать «как есть»
   const normalized = normalizeUser(payload);
   if (normalized) return normalized;
 
-  // Частые обёртки бэкендов: { user }, { data }, { result }, { payload }
-  const container = payload as UnknownRecord;
-  const possibleKeys = ['user', 'data', 'result', 'payload'];
-  for (const key of possibleKeys) {
-    if (key in container) {
-      const nested = pickUserFromPayload((container as UnknownRecord)[key]);
-      if (nested) return nested;
+  // Частые обёртки: { user }, { data }, { result }, { payload }
+  if (isPlainObject(payload)) {
+    const container = payload as Record<string, unknown>;
+    const possibleKeys = ['user', 'data', 'result', 'payload'] as const;
+    for (const key of possibleKeys) {
+      if (key in container) {
+        const nested = pickUserFromPayload(container[key]);
+        if (nested) return nested;
+      }
     }
   }
 
   return null;
 }
 
-/** Для совместимости с остальным кодом */
+/** Совместимый слой-обёртка */
 function extractUser(payload: unknown): User | null {
   return pickUserFromPayload(payload);
 }
@@ -78,21 +74,21 @@ type AuthDto = { email: string; password: string };
 
 /** Register */
 export async function register(dto: AuthDto): Promise<User | null> {
-  const res = await api.post<UserPayload>('/auth/register', dto);
-  const user = extractUser((res as any).data);
+  const res = await api.post<unknown>('/auth/register', dto);
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
 /** Login */
 export async function login(dto: AuthDto): Promise<User | null> {
-  const res = await api.post<UserPayload>('/auth/login', dto);
-  const user = extractUser((res as any).data);
+  const res = await api.post<unknown>('/auth/login', dto);
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
 
-/** Logout: проглатываем 401/403, стор всё равно чистим */
+/** Logout: проглатываем 401/403, стор чистим всегда */
 export async function logout(): Promise<void> {
   try {
     await api.post<void>('/auth/logout');
@@ -111,24 +107,24 @@ export async function logout(): Promise<void> {
 /** Session check — возвращает пользователя или null */
 export async function getSession(): Promise<User | null> {
   try {
-    const res = await api.get<UserPayload>('/auth/session');
-    const user = pickUserFromPayload(res.data);
+    const res = await api.get<unknown>('/auth/session');
+    const user = extractUser(res.data);
     if (user) {
       useAuthStore.getState().setUser(user);
       return user;
     }
     return null;
-  } catch (_err) {
+  } catch {
     useAuthStore.getState().clearIsAuthenticated();
     return null;
   }
 }
 
-/** /users/me (SSR-несовместимых зависимостей тут нет) */
+/** /users/me — получить профиль */
 export async function getMe(): Promise<User | null> {
   try {
-    const res = await api.get<UserPayload>('/users/me');
-    const user = extractUser((res as any).data);
+    const res = await api.get<unknown>('/users/me');
+    const user = extractUser(res.data);
     if (user) {
       useAuthStore.getState().setUser(user);
       return user;
@@ -148,8 +144,8 @@ export async function getMe(): Promise<User | null> {
 
 /** PATCH /users/me — обновляем username */
 export async function updateMe(username: string): Promise<User | null> {
-  const res = await api.patch<UserPayload>('/users/me', { username });
-  const user = extractUser((res as any).data);
+  const res = await api.patch<unknown>('/users/me', { username });
+  const user = extractUser(res.data);
   if (user) useAuthStore.getState().setUser(user);
   return user;
 }
