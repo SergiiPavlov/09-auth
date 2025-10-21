@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignUpPage.module.css';
 import { register } from '@/lib/api/clientApi';
@@ -9,24 +10,26 @@ import { getErrorMessage } from '@/lib/errors';
 export default function SignUpPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const registerMutation = useMutation({
+    mutationFn: register,
+    onSuccess: () => {
+      router.push('/profile');
+    },
+    onError: (err: unknown) => {
+      setError(getErrorMessage(err, 'Registration failed'));
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get('email') || '');
     const password = String(formData.get('password') || '');
 
-    try {
-      await register({ email, password });
-      router.push('/profile');
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Registration failed'));
-      setIsSubmitting(false);
-    }
+    registerMutation.mutate({ email, password });
   }
 
   return (
@@ -44,8 +47,12 @@ export default function SignUpPage() {
         </div>
 
         <div className={styles.actions}>
-          <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-            {isSubmitting ? 'Registering…' : 'Register'}
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={registerMutation.isPending}
+          >
+            {registerMutation.isPending ? 'Registering…' : 'Register'}
           </button>
         </div>
 
