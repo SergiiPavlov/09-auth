@@ -115,8 +115,11 @@ export async function getSession(): Promise<User | null> {
       useAuthStore.getState().setUser(user);
       return user;
     }
+    // 200 без тела/пользователя — неавторизован: явно сбрасываем флаг
+    useAuthStore.getState().clearIsAuthenticated();
     return null;
-  } catch {
+  } catch (err) {
+    // Любая ошибка сети/401/403 — считаем, что сессии нет
     useAuthStore.getState().clearIsAuthenticated();
     return null;
   }
