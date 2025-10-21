@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/EditProfilePage.module.css';
@@ -14,7 +15,6 @@ export default function EditProfilePage() {
   const [username, setUsername] = useState(user?.username ?? '');
   const [email, setEmail] = useState(user?.email ?? 'user_email@example.com');
   const [avatar, setAvatar] = useState(user?.avatarURL ?? user?.avatar ?? '/icon.svg');
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,18 +35,20 @@ export default function EditProfilePage() {
     });
   }, [user]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const updateProfileMutation = useMutation({
+    mutationFn: (value: string) => updateMe(value),
+    onSuccess: () => {
+      router.push('/profile');
+    },
+    onError: (err: unknown) => {
+      setError(getErrorMessage(err, 'Update failed'));
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setIsSaving(true);
-
-    try {
-      await updateMe(username.trim());
-      router.push('/profile');
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Update failed'));
-      setIsSaving(false);
-    }
+    updateProfileMutation.mutate(username.trim());
   }
 
   function handleCancel() {
@@ -76,10 +78,19 @@ export default function EditProfilePage() {
           <p>Email: {email}</p>
 
           <div className={styles.actions}>
-            <button type="submit" className={styles.saveButton} disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+            <button
+              type="submit"
+              className={styles.saveButton}
+              disabled={updateProfileMutation.isPending}
+            >
+              {updateProfileMutation.isPending ? 'Saving…' : 'Save'}
             </button>
-            <button type="button" className={styles.cancelButton} onClick={handleCancel} disabled={isSaving}>
+            <button
+              type="button"
+              className={styles.cancelButton}
+              onClick={handleCancel}
+              disabled={updateProfileMutation.isPending}
+            >
               Cancel
             </button>
           </div>

@@ -1,5 +1,0 @@
-AppShell/global TanStack + Private AuthProvider applied:
-- Ensured components/TanStackProvider/TanStackProvider.tsx (client)
-- Added components/AppShell/AppShell.tsx (client)
-- Rewrote app/layout.tsx: clean server layout using AppShell (no modal)
-- Set app/(private routes)/layout.tsx: AuthProvider + dynamic, render children+modal
