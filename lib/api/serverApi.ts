@@ -1,10 +1,18 @@
 import axios from 'axios';
 import { cookies } from 'next/headers';
 
+/**
+ * Server-side API instance.
+ * Uses absolute base URL from NEXT_PUBLIC_API_URL + '/api' to be robust on Vercel.
+ * Falls back to '/api' for local dev.
+ */
+const PUBLIC_BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+const BASE_URL = (PUBLIC_BASE ? `${PUBLIC_BASE}/api` : '/api');
+
 export function serverApi() {
   const cookieHeader = cookies().toString();
   return axios.create({
-    baseURL: '/api',
+    baseURL: BASE_URL,
     withCredentials: true,
     headers: { 'Content-Type': 'application/json', Cookie: cookieHeader },
   });
