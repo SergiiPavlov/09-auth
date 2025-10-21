@@ -6,7 +6,7 @@ import type { User } from '@/types/user';
 import { isAxiosError } from 'axios';
 
 // Базовые типы полезной нагрузки
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<PropertyKey, unknown>;
 type UserPayload = unknown;
 
 function isUserRecord(value: UnknownRecord): value is User {
