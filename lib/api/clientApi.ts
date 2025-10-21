@@ -6,38 +6,6 @@ import type { User } from '@/types/user';
 
 type UnknownRecord = Record<string, unknown>;
 
-function normalizeUser(candidate: UnknownRecord): User | null {
-  const email = candidate.email;
-  const username = candidate.username;
-
-  if (typeof email !== 'string' || typeof username !== 'string') {
-    return null;
-  }
-
-  const user: User = {
-    username,
-    email,
-  };
-
-  if (typeof candidate.id === 'string') {
-    user.id = candidate.id;
-  }
-
-  if (typeof candidate.avatarURL === 'string') {
-    user.avatarURL = candidate.avatarURL;
-  } else if (candidate.avatarURL === null) {
-    user.avatarURL = null;
-  }
-
-  if (typeof candidate.avatar === 'string') {
-    user.avatar = candidate.avatar;
-  } else if (candidate.avatar === null) {
-    user.avatar = null;
-  }
-
-  return user;
-}
-
 function pickUserFromPayload(payload: unknown): User | null {
   if (!payload || typeof payload !== 'object') {
     return null;
@@ -69,9 +37,8 @@ function pickUserFromPayload(payload: unknown): User | null {
     }
   }
 
-  const normalized = normalizeUser(data);
-  if (normalized) {
-    return normalized;
+  if (typeof data.email === 'string') {
+    return data as User;
   }
 
   return null;

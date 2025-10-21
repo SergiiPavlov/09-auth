@@ -65,9 +65,11 @@ export async function GET() {
       },
     });
 
+
     const user = pickUserFromPayload(apiRes.data);
     const responsePayload = user ? { user } : null;
     const response = NextResponse.json(responsePayload, { status: apiRes.status });
+
     appendSetCookieHeaders(response, apiRes.headers['set-cookie']);
     return response;
   } catch (error) {
