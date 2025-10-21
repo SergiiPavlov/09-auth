@@ -17,8 +17,8 @@ export type FetchNotesResponse = {
 };
 
 function normalizeNotesResponse(raw: any, params: FetchNotesParams): FetchNotesResponse {
-  const page = Number(params.page || 1);
-  const perPage = Number(params.perPage || 12);
+  const page = Number(params.page || raw?.page || 1);
+  const perPage = Number(params.perPage || raw?.perPage || 12);
 
   let notes: Note[] = [];
   if (Array.isArray(raw)) {
@@ -31,20 +31,36 @@ function normalizeNotesResponse(raw: any, params: FetchNotesParams): FetchNotesR
     notes = raw.data;
   }
 
-  const total = Number(raw?.total ?? raw?.totalItems ?? raw?.totalCount ?? notes.length);
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const totalFromCounts =
+    raw?.totalItems ?? raw?.total ?? raw?.totalCount ?? undefined;
+  const totalPagesFromRaw =
+    raw?.totalPages ?? raw?.pageCount ?? raw?.pages ?? undefined;
+
+  let totalPages = Number(totalPagesFromRaw);
+  if (!Number.isFinite(totalPages) || totalPages <= 0) {
+    const totalCount = Number(totalFromCounts ?? notes.length);
+    totalPages = Math.max(1, Math.ceil(totalCount / Math.max(perPage, 1)));
+  }
+
+  const total =
+    Number(totalFromCounts) && Number(totalFromCounts) > 0
+      ? Number(totalFromCounts)
+      : Number.isFinite(totalPages) && totalPages > 0
+      ? totalPages * perPage
+      : notes.length;
+
   return { notes, total, page, perPage, totalPages };
 }
 
 export async function fetchNotes(params: FetchNotesParams = {}): Promise<FetchNotesResponse> {
   const res = await api.get('/notes', {
-    params: {
-      page: params.page,
-      limit: params.perPage, // popular param name
-      perPage: params.perPage,
-      search: params.search,
-      tag: params.tag,
-    },
+      params: {
+        page: params.page,
+        perPage: params.perPage,
+        limit: params.perPage, // some backends accept `limit`
+        search: params.search || undefined,
+        tag: params.tag && params.tag !== 'All' ? params.tag : undefined,
+      },
   });
   return normalizeNotesResponse(res.data, params);
 }
