@@ -55,7 +55,6 @@ function extractUser(payload: unknown): User | null {
 
   if (!email || !username) return null;
 
-  // Строим корректный объект User без небезопасного каста
   const user: User = {
     email,
     username,
@@ -98,7 +97,6 @@ export async function logout() {
       throw err;
     }
   } finally {
-    // В любом случае очищаем клиентское состояние
     useAuthStore.getState().clearIsAuthenticated();
   }
 }
