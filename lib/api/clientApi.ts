@@ -66,20 +66,19 @@ export async function logout() {
   try {
     await api.post('/auth/logout');
   } catch (err) {
+    // Гасим только ожидаемые 401/403 (уже разлогинен)
     if (isAxiosError(err)) {
       const status = err.response?.status ?? 0;
-      // 401/403 считаем штатным кейсом «уже разлогинен»
       if (status === 401 || status === 403) {
-        // игнорируем
+        // noop
       } else {
-        // На прочие ошибки не молчим — пробрасываем (пусть попадёт в консоль/monitoring)
-        throw err;
+        throw err; // непрогнозируемые ошибки не скрываем
       }
     } else {
       throw err;
     }
   } finally {
-    // Локальное состояние чистим в любом случае.
+    // В любом случае очищаем клиентское состояние
     useAuthStore.getState().clearIsAuthenticated();
   }
 }
