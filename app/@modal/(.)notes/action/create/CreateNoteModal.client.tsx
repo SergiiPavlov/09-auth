@@ -3,9 +3,7 @@ import { useRouter } from 'next/navigation';
 import Modal from '@/components/Modal/Modal';
 import NoteForm from '@/components/NoteForm/NoteForm';
 
-interface Props {
-  categories: { id: string; name: string }[];
-}
+interface Props { categories?: { id: string; name: string }[] }
 
 export default function CreateNoteModalClient({ categories }: Props) {
   const router = useRouter();

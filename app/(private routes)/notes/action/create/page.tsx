@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import css from './CreateNote.module.css';
 import NoteForm from '@/components/NoteForm/NoteForm';
-import { getCategories } from '@/lib/api';
 
 const APP_URL = 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
@@ -26,13 +25,13 @@ export const metadata = {
 } satisfies Metadata;
 
 export default async function CreateNote() {
-  const categories = await getCategories();
+  const categories = undefined;
 
   return (
     <main className={css.main}>
       <div className={css.container}>
         <h1 className={css.title}>Create note</h1>
-        <NoteForm categories={categories} />
+        <NoteForm />
       </div>
     </main>
   );

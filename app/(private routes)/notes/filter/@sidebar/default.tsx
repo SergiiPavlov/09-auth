@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { getCategories } from '@/lib/api';
+import { getCategoriesServer } from '@/lib/api/notes.server';
 import css from './SidebarNotes.module.css';
 
 const TAGS = ['All', 'Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
 
 export default async function SidebarNotes() {
-  const categories = await getCategories();
+  const categories = await getCategoriesServer();
 
   return (
     <nav aria-label="Filter notes by tag">

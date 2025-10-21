@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { unstable_noStore } from 'next/cache';
 import NotesClient from './Notes.client';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
-import { fetchNotes } from '@/lib/api/notes';
+import { fetchNotesServer } from '@/lib/api/notes.server';
 import type { NoteTag } from '@/types/note';
 type Props = {
   params: Promise<{ slug?: string[] }>;
@@ -86,7 +86,7 @@ export default async function NotesFilterPage({ params }: NotesFilterPageProps) 
   await qc.prefetchQuery({
     queryKey: ['notes', { search: '', tag: tagForQuery, page: 1, perPage: 12 }],
     queryFn: () =>
-      fetchNotes({
+      fetchNotesServer({
         search: '',
         page: 1,
         perPage: 12,

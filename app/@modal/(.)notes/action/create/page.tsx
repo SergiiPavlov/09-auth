@@ -1,7 +1,6 @@
-import CreateNoteModalClient from './CreateNoteModal.client';
-import { getCategories } from '@/lib/api';
+export const dynamic = 'force-dynamic';
 
-export default async function CreateNoteModalPage() {
-  const categories = await getCategories();
-  return <CreateNoteModalClient categories={categories} />;
+import CreateNoteModalClient from './CreateNoteModal.client';
+export default function CreateNoteModalPage() {
+  return <CreateNoteModalClient />;
 }
