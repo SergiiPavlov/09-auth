@@ -34,7 +34,12 @@ export default function NoteForm({ categories }: Props) {
         if (mounted && Array.isArray(list) && list.length) setCats(list);
       }).catch(() => {});
     }
-    return () => { mounted = false; };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await handleFormAction();
+  };
+return () => { mounted = false; };
   }, [categories]);
 
   const { mutateAsync, isPending } = useMutation({
@@ -56,7 +61,6 @@ export default function NoteForm({ categories }: Props) {
   };
 
   const handleCancel = () => {
-    clearDraft();
     router.back();
   };
 
@@ -74,7 +78,7 @@ export default function NoteForm({ categories }: Props) {
   const current = { ...initialDraft, ...draft };
 
   return (
-    <form className={css.form}>
+    <form className={css.form} action={handleFormAction}>
       <div className={css.field}>
         <label htmlFor="title" className={css.label}>Title</label>
         <input
@@ -125,7 +129,7 @@ export default function NoteForm({ categories }: Props) {
           type="submit"
           disabled={isPending}
           className={css.submitButton}
-          formAction={handleFormAction}
+         
         >
           {isPending ? 'Creating…' : 'Create'}
         </button>

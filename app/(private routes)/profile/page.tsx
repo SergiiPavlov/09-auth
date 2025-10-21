@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import styles from '@/app/styles/ProfilePage.module.css';
 import { getMe } from '@/lib/api/serverApi';
+import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Profile Page · NoteHub',
@@ -29,7 +30,7 @@ export default async function ProfilePage() {
           </Link>
         </div>
         <div className={styles.avatarWrapper}>
-          <img src={avatar} alt="User Avatar" width={120} height={120} className={styles.avatar} />
+          <Image src={avatar} alt="User Avatar" width={120} height={120} className={styles.avatar} unoptimized />
         </div>
         <div className={styles.profileInfo}>
           <p>Username: {username}</p>
