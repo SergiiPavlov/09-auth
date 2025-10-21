@@ -9,28 +9,20 @@ import { isAxiosError } from 'axios';
 type UnknownRecord = Record<string, unknown>;
 type UserPayload = unknown;
 
-function isUserRecord(value: unknown): value is User {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const record = value as UnknownRecord;
+function isUserRecord(value: UnknownRecord): value is User {
   const hasValidUsername =
-    'username' in record && typeof record.username === 'string';
-  const hasValidEmail =
-    'email' in record && typeof record.email === 'string';
+    'username' in value && typeof value.username === 'string';
+  const hasValidEmail = 'email' in value && typeof value.email === 'string';
   const hasValidAvatar =
-    !('avatar' in record) ||
-    record.avatar === null ||
-    typeof record.avatar === 'string';
+    !('avatar' in value) ||
+    value.avatar === null ||
+    typeof value.avatar === 'string';
   const hasValidAvatarURL =
-    !('avatarURL' in record) ||
-    record.avatarURL === null ||
-    typeof record.avatarURL === 'string';
+    !('avatarURL' in value) ||
+    value.avatarURL === null ||
+    typeof value.avatarURL === 'string';
   const hasValidId =
-    !('id' in record) ||
-    record.id === undefined ||
-    typeof record.id === 'string';
+    !('id' in value) || value.id === undefined || typeof value.id === 'string';
 
   return (
     hasValidUsername &&
