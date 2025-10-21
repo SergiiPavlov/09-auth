@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignInPage.module.css';
 import { login } from '@/lib/api/clientApi';
@@ -9,24 +10,26 @@ import { getErrorMessage } from '@/lib/errors';
 export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      router.push('/profile');
+    },
+    onError: (err: unknown) => {
+      setError(getErrorMessage(err, 'Login failed'));
+    },
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get('email') || '');
     const password = String(formData.get('password') || '');
 
-    try {
-      await login({ email, password });
-      router.push('/profile');
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Login failed'));
-      setIsSubmitting(false);
-    }
+    loginMutation.mutate({ email, password });
   }
 
   return (
@@ -45,8 +48,12 @@ export default function SignInPage() {
         </div>
 
         <div className={styles.actions}>
-          <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-            {isSubmitting ? 'Logging in…' : 'Log in'}
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={loginMutation.isPending}
+          >
+            {loginMutation.isPending ? 'Logging in…' : 'Log in'}
           </button>
         </div>
 
