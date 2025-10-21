@@ -4,6 +4,46 @@ import { api } from './api';
 import { useAuthStore } from '@/lib/store/authStore';
 import type { User } from '@/types/user';
 
+type UnknownRecord = Record<string, unknown>;
+
+function pickUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const candidate = pickUserFromPayload(item);
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  const data = payload as UnknownRecord;
+
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (typeof data.email === 'string') {
+    return data as User;
+  }
+
+  return null;
+}
+
 type RegisterDto = { email: string; password: string };
 type LoginDto = { email: string; password: string };
 
@@ -29,7 +69,7 @@ export async function logout() {
 export async function getSession() {
   try {
     const res = await api.get('/auth/session');
-    const user: User | null = res.data?.user ?? res.data ?? null;
+    const user = pickUserFromPayload(res.data);
     if (user && user.email) {
       useAuthStore.getState().setUser(user);
     } else {
