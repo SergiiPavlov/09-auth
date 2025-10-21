@@ -2,12 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
 
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'ac.goit.global' },
-    ],
-  },
-
   // Временно отключаем ESLint на прод-билде (на Vercel),
   // чтобы не блокировать деплой из-за внешнего rushstack-patch.
   // Локально продолжайте использовать `npm run lint`.
