@@ -3,6 +3,7 @@
 import { api } from './api';
 import { useAuthStore } from '@/lib/store/authStore';
 import type { User } from '@/types/user';
+import { isAxiosError } from 'axios';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -21,12 +22,12 @@ function pickUserFromPayload(payload: unknown): UnknownRecord | null {
   const data = payload as UnknownRecord;
 
   // Наиболее частые варианты обёрток
-  if (data.user && typeof data.user === 'object') {
-    const nested = pickUserFromPayload(data.user);
+  if ((data as any).user && typeof (data as any).user === 'object') {
+    const nested = pickUserFromPayload((data as any).user);
     if (nested) return nested;
   }
-  if (data.data && typeof data.data === 'object') {
-    const nested = pickUserFromPayload(data.data);
+  if ((data as any).data && typeof (data as any).data === 'object') {
+    const nested = pickUserFromPayload((data as any).data);
     if (nested) return nested;
   }
 
@@ -78,9 +79,21 @@ export async function login(dto: LoginDto) {
 export async function logout() {
   try {
     await api.post('/auth/logout');
-  } catch {
-    // Если уже разлогинены или сеть упала — считаем это успешным выходом
+  } catch (err) {
+    if (isAxiosError(err)) {
+      const status = err.response?.status ?? 0;
+      // 401/403 считаем штатным кейсом «уже разлогинен»
+      if (status === 401 || status === 403) {
+        // игнорируем
+      } else {
+        // На прочие ошибки не молчим — пробрасываем (пусть попадёт в консоль/monitoring)
+        throw err;
+      }
+    } else {
+      throw err;
+    }
   } finally {
+    // Локальное состояние чистим в любом случае.
     useAuthStore.getState().clearIsAuthenticated();
   }
 }
