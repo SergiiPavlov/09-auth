@@ -8,39 +8,39 @@ import { isAxiosError } from 'axios';
 type UnknownRecord = Record<string, unknown>;
 type UserPayload = unknown;
 
-function isUser(v: unknown): v is User {
-  if (!v || typeof v !== 'object') return false;
-  const o = v as UnknownRecord;
-  return typeof o['email'] === 'string' && typeof o['username'] === 'string';
-}
+function pickUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
 
-function extractUser(payload: unknown): User | null {
-  if (!payload) return null;
-
-  // direct object
-  if (isUser(payload)) return payload;
-
-  // arrays
   if (Array.isArray(payload)) {
     for (const item of payload) {
-      const u = extractUser(item);
-      if (u) return u;
+      const candidate = pickUserFromPayload(item);
+      if (candidate) {
+        return candidate;
+      }
     }
     return null;
   }
 
-  if (typeof payload === 'object') {
-    const r = payload as UnknownRecord;
+  const data = payload as UnknownRecord;
 
-    // common wrappers
-    if ('user' in r) {
-      const u = extractUser((r as any).user);
-      if (u) return u;
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
     }
-    if ('data' in r) {
-      const u = extractUser((r as any).data);
-      if (u) return u;
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
     }
+  }
+
+  if (typeof data.email === 'string') {
+    return data as User;
   }
 
   return null;
@@ -86,9 +86,9 @@ export async function logout(): Promise<void> {
 /** Session check – returns user or null (when unauthenticated) */
 export async function getSession(): Promise<User | null> {
   try {
-    const res = await api.get<UserPayload>('/auth/session');
-    const user = extractUser((res as any).data);
-    if (user) {
+    const res = await api.get('/auth/session');
+    const user = pickUserFromPayload(res.data);
+    if (user && user.email) {
       useAuthStore.getState().setUser(user);
       return user;
     }
