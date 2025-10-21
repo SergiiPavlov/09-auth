@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { unstable_noStore } from 'next/cache';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
-import { fetchNoteById } from '@/lib/api/notes';
+import { fetchNoteByIdServer } from '@/lib/api/notes.server';
 import NoteDetailsClient from './NoteDetails.client';
 
 export const dynamic = 'force-dynamic';
@@ -10,31 +9,30 @@ interface NoteDetailsPageProps {
   params: Promise<{ id: string }>;
 }
 
-const APP_URL = 'https://notehub.example';
+// Use your real prod URL here if available via env.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
 
 export async function generateMetadata({ params }: NoteDetailsPageProps): Promise<Metadata> {
-  unstable_noStore();
   const { id } = await params;
-  const canonicalPath = `/notes/${encodeURIComponent(id)}`;
-  const url = `${APP_URL}${canonicalPath}`;
+
   try {
-    const note = await fetchNoteById(id);
+    const note = await fetchNoteByIdServer(id);
     const title = `Note: ${note.title}`;
     const description = note.content.slice(0, 100);
+
+    const canonicalPath = `/notes/${id}`;
+    const url = `${APP_URL}${canonicalPath}`;
+
     return {
       title,
       description,
-      alternates: {
-        canonical: canonicalPath,
-      },
+      alternates: { canonical: canonicalPath },
       openGraph: {
         title,
         description,
         url,
-        siteName: 'NoteHub',
-        images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: note.title }],
-        type: 'article',
+        images: [{ url: OG_IMAGE }],
       },
       twitter: {
         card: 'summary_large_image',
@@ -42,38 +40,16 @@ export async function generateMetadata({ params }: NoteDetailsPageProps): Promis
         description,
         images: [OG_IMAGE],
       },
-      metadataBase: new URL(APP_URL),
     };
   } catch {
-    const title = 'Note not found';
-    const description = 'The requested note could not be found.';
     return {
-      title,
-      description,
-      alternates: {
-        canonical: canonicalPath,
-      },
-      openGraph: {
-        title,
-        description,
-        url,
-        siteName: 'NoteHub',
-        images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: title }],
-        type: 'article',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title,
-        description,
-        images: [OG_IMAGE],
-      },
-      metadataBase: new URL(APP_URL),
+      title: 'Note',
+      description: 'Note details',
     };
   }
 }
 
 export default async function NoteDetailsPage({ params }: NoteDetailsPageProps) {
-  unstable_noStore();
   const { id } = await params;
   const numericId = Number(id);
   const keyId = Number.isFinite(numericId) ? numericId : id;
@@ -81,7 +57,7 @@ export default async function NoteDetailsPage({ params }: NoteDetailsPageProps) 
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({
     queryKey: ['note', { id: keyId }],
-    queryFn: () => fetchNoteById(id),
+    queryFn: () => fetchNoteByIdServer(id),
   });
 
   return (
