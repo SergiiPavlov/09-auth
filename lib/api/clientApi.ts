@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/store/authStore';
 import type { User } from '@/types/user';
 import { isAxiosError } from 'axios';
 
+// Базовые типы полезной нагрузки
 type UnknownRecord = Record<string, unknown>;
 type UserPayload = unknown;
 
@@ -46,11 +47,17 @@ function pickUserFromPayload(payload: unknown): User | null {
   return null;
 }
 
-// Keep axios instance export (used elsewhere)
+/** Для совместимости с остальным кодом */
+function extractUser(payload: unknown): User | null {
+  return pickUserFromPayload(payload);
+}
+
+// Экспорт axios-инстанса как раньше
 export const clientApi = api;
 
 type AuthDto = { email: string; password: string };
 
+/** Register */
 export async function register(dto: AuthDto): Promise<User | null> {
   const res = await api.post<UserPayload>('/auth/register', dto);
   const user = extractUser((res as any).data);
@@ -58,6 +65,7 @@ export async function register(dto: AuthDto): Promise<User | null> {
   return user;
 }
 
+/** Login */
 export async function login(dto: AuthDto): Promise<User | null> {
   const res = await api.post<UserPayload>('/auth/login', dto);
   const user = extractUser((res as any).data);
@@ -65,16 +73,14 @@ export async function login(dto: AuthDto): Promise<User | null> {
   return user;
 }
 
-/** Logout: swallow 401/403 (already logged out), clear store anyway */
+/** Logout: проглатываем 401/403, стор всё равно чистим */
 export async function logout(): Promise<void> {
   try {
     await api.post<void>('/auth/logout');
   } catch (err) {
     if (isAxiosError(err)) {
       const status = err.response?.status ?? 0;
-      if (status !== 401 && status !== 403) {
-        throw err;
-      }
+      if (status !== 401 && status !== 403) throw err;
     } else {
       throw err;
     }
@@ -83,7 +89,7 @@ export async function logout(): Promise<void> {
   }
 }
 
-/** Session check – returns user or null (when unauthenticated) */
+/** Session check — возвращает пользователя или null */
 export async function getSession(): Promise<User | null> {
   try {
     const res = await api.get('/auth/session');
@@ -99,7 +105,7 @@ export async function getSession(): Promise<User | null> {
   }
 }
 
-/** Fetch profile – clear auth on 401/403 */
+/** /users/me (SSR-несовместимых зависимостей тут нет) */
 export async function getMe(): Promise<User | null> {
   try {
     const res = await api.get<UserPayload>('/users/me');
@@ -121,7 +127,7 @@ export async function getMe(): Promise<User | null> {
   }
 }
 
-/** Update username (profile) */
+/** PATCH /users/me — обновляем username */
 export async function updateMe(username: string): Promise<User | null> {
   const res = await api.patch<UserPayload>('/users/me', { username });
   const user = extractUser((res as any).data);
