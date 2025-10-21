@@ -6,56 +6,42 @@ import type { User } from '@/types/user';
 
 type UnknownRecord = Record<string, unknown>;
 
-function pickUserFromPayload(payload: unknown): UnknownRecord | null {
-  if (!payload || typeof payload !== 'object') return null;
+function pickUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
 
-  // Массив? Поищем в каждом элементе
   if (Array.isArray(payload)) {
     for (const item of payload) {
       const candidate = pickUserFromPayload(item);
-      if (candidate) return candidate;
+      if (candidate) {
+        return candidate;
+      }
     }
     return null;
   }
 
   const data = payload as UnknownRecord;
 
-  // Наиболее частые варианты обёрток
-  if (data.user && typeof data.user === 'object') {
+  if (data.user) {
     const nested = pickUserFromPayload(data.user);
-    if (nested) return nested;
+    if (nested) {
+      return nested;
+    }
   }
-  if (data.data && typeof data.data === 'object') {
+
+  if (data.data) {
     const nested = pickUserFromPayload(data.data);
-    if (nested) return nested;
+    if (nested) {
+      return nested;
+    }
   }
 
-  return data;
-}
+  if (typeof data.email === 'string') {
+    return data as User;
+  }
 
-function extractUser(payload: unknown): User | null {
-  const data = pickUserFromPayload(payload);
-  if (!data) return null;
-
-  const email =
-    typeof (data as any).email === 'string' ? ((data as any).email as string) : null;
-
-  // username: берём по приоритету username → name → часть email до @
-  let username: string | null = null;
-  if (typeof (data as any).username === 'string') username = (data as any).username;
-  else if (typeof (data as any).name === 'string') username = (data as any).name;
-  else if (email) username = email.split('@')[0];
-
-  const avatarURL =
-    typeof (data as any).avatarURL === 'string'
-      ? ((data as any).avatarURL as string)
-      : typeof (data as any).avatar === 'string'
-      ? ((data as any).avatar as string)
-      : null;
-
-  if (!email || !username) return null;
-
-  return { email, username, avatarURL, avatar: avatarURL ?? null };
+  return null;
 }
 
 type RegisterDto = { email: string; password: string };
@@ -83,8 +69,8 @@ export async function logout() {
 export async function getSession() {
   try {
     const res = await api.get('/auth/session');
-    const user = extractUser(res.data);
-    if (user) {
+    const user = pickUserFromPayload(res.data);
+    if (user && user.email) {
       useAuthStore.getState().setUser(user);
       return user;
     }
