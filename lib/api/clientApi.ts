@@ -38,7 +38,9 @@ function pickUserFromPayload(payload: unknown): User | null {
   if (Array.isArray(payload)) {
     for (const item of payload) {
       const candidate = pickUserFromPayload(item);
-      if (candidate) return candidate;
+      if (candidate) {
+        return candidate;
+      }
     }
     return null;
   }
