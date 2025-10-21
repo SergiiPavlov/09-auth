@@ -6,8 +6,40 @@ import type { User } from '@/types/user';
 import { isAxiosError } from 'axios';
 
 // Базовые типы полезной нагрузки
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<PropertyKey, unknown>;
 type UserPayload = unknown;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function isUserRecord(value: unknown): value is User {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const record = value as UnknownRecord;
+  const { username, email, avatar, avatarURL, id } = record;
+
+  const hasValidUsername = typeof username === 'string';
+  const hasValidEmail = typeof email === 'string';
+  const hasValidAvatar =
+    avatar === undefined || avatar === null || typeof avatar === 'string';
+  const hasValidAvatarURL =
+    avatarURL === undefined ||
+    avatarURL === null ||
+    typeof avatarURL === 'string';
+  const hasValidId =
+    id === undefined || id === null || typeof id === 'string';
+
+  return (
+    hasValidUsername &&
+    hasValidEmail &&
+    hasValidAvatar &&
+    hasValidAvatarURL &&
+    hasValidId
+  );
+}
 
 function pickUserFromPayload(payload: unknown): User | null {
   if (!payload || typeof payload !== 'object') {
@@ -26,6 +58,10 @@ function pickUserFromPayload(payload: unknown): User | null {
 
   const data = payload as UnknownRecord;
 
+  if (isUserRecord(data)) {
+    return data;
+  }
+
   if (data.user) {
     const nested = pickUserFromPayload(data.user);
     if (nested) {
@@ -38,10 +74,6 @@ function pickUserFromPayload(payload: unknown): User | null {
     if (nested) {
       return nested;
     }
-  }
-
-  if (typeof data.email === 'string') {
-    return data as User;
   }
 
   return null;
