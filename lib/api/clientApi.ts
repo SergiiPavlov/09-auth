@@ -6,38 +6,39 @@ import type { User } from '@/types/user';
 
 type UnknownRecord = Record<string, unknown>;
 
-function isUser(value: unknown): value is User {
-  if (!value || typeof value !== 'object') return false;
-  const r = value as UnknownRecord;
-  return typeof r.email === 'string' && typeof r.username === 'string';
-}
-
-function extractUser(payload: unknown): User | null {
-  if (isUser(payload)) return payload;
-
-  if (!payload || typeof payload !== 'object') return null;
-  const data = payload as UnknownRecord;
-
-  // common wrappers
-  if (isUser(data.user)) return data.user as User;
-  if (isUser(data.data)) return data.data as User;
-
-  // nested objects
-  if (data.user && typeof data.user === 'object') {
-    const u = extractUser(data.user);
-    if (u) return u;
-  }
-  if (data.data && typeof data.data === 'object') {
-    const u = extractUser(data.data);
-    if (u) return u;
+function pickUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
   }
 
-  // arrays
   if (Array.isArray(payload)) {
     for (const item of payload) {
-      const u = extractUser(item);
-      if (u) return u;
+      const candidate = pickUserFromPayload(item);
+      if (candidate) {
+        return candidate;
+      }
     }
+    return null;
+  }
+
+  const data = payload as UnknownRecord;
+
+  if (data.user) {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (data.data) {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  if (typeof data.email === 'string') {
+    return data as User;
   }
 
   return null;
@@ -67,16 +68,9 @@ export async function logout() {
 
 export async function getSession() {
   try {
-    const s = await api.get('/auth/session');
-    const userFromSession = extractUser(s.data);
-    if (userFromSession) {
-      useAuthStore.getState().setUser(userFromSession);
-      return userFromSession;
-    }
-    // Fallback to explicit /users/me if session endpoint didn't include user
-    const me = await api.get('/users/me');
-    const user = extractUser(me.data);
-    if (user) {
+    const res = await api.get('/auth/session');
+    const user = pickUserFromPayload(res.data);
+    if (user && user.email) {
       useAuthStore.getState().setUser(user);
       return user;
     }
