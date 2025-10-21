@@ -37,8 +37,10 @@ export default function RootLayout({ children, modal }: { children: ReactNode; m
   return (
     <html lang="en">
       <body className={roboto.variable}>
-        <AppShell>{children}</AppShell>
-        {modal}
+        <AppShell>
+          {children}
+          {modal}
+        </AppShell>
       </body>
     </html>
   );
