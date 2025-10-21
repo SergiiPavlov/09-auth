@@ -9,6 +9,38 @@ import { isAxiosError } from 'axios';
 type UnknownRecord = Record<string, unknown>;
 type UserPayload = unknown;
 
+function isUserRecord(value: unknown): value is User {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const record = value as UnknownRecord;
+  const hasValidUsername =
+    'username' in record && typeof record.username === 'string';
+  const hasValidEmail =
+    'email' in record && typeof record.email === 'string';
+  const hasValidAvatar =
+    !('avatar' in record) ||
+    record.avatar === null ||
+    typeof record.avatar === 'string';
+  const hasValidAvatarURL =
+    !('avatarURL' in record) ||
+    record.avatarURL === null ||
+    typeof record.avatarURL === 'string';
+  const hasValidId =
+    !('id' in record) ||
+    record.id === undefined ||
+    typeof record.id === 'string';
+
+  return (
+    hasValidUsername &&
+    hasValidEmail &&
+    hasValidAvatar &&
+    hasValidAvatarURL &&
+    hasValidId
+  );
+}
+
 function pickUserFromPayload(payload: unknown): User | null {
   if (!payload || typeof payload !== 'object') {
     return null;
@@ -26,6 +58,10 @@ function pickUserFromPayload(payload: unknown): User | null {
 
   const data = payload as UnknownRecord;
 
+  if (isUserRecord(data)) {
+    return data;
+  }
+
   if (data.user) {
     const nested = pickUserFromPayload(data.user);
     if (nested) {
@@ -38,10 +74,6 @@ function pickUserFromPayload(payload: unknown): User | null {
     if (nested) {
       return nested;
     }
-  }
-
-  if (typeof data.email === 'string') {
-    return data as User;
   }
 
   return null;
