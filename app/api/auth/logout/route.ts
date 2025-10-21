@@ -7,17 +7,12 @@ import { serialize } from 'cookie';
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const cookieHeader = toUpstreamCookieHeader(cookieStore);
 
     const apiRes = await api.post('/auth/logout', null, {
-      headers: {
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
+      headers: { ...(cookieHeader ? { Cookie: cookieHeader } : {}) },
     });
-
-    cookieStore.delete('accessToken');
-    cookieStore.delete('refreshToken');
 
     const response = NextResponse.json(apiRes.data ?? { message: 'Logged out successfully' }, {
       status: apiRes.status ?? 200,
@@ -27,12 +22,7 @@ export async function POST() {
     if (upstreamCookies && (Array.isArray(upstreamCookies) ? upstreamCookies.length > 0 : true)) {
       appendSetCookieHeaders(response, upstreamCookies);
     } else {
-      const cookieOptions = {
-        path: '/',
-        maxAge: 0,
-        httpOnly: true,
-        sameSite: 'lax' as const,
-      };
+      const cookieOptions = { path: '/', maxAge: 0, httpOnly: true, sameSite: 'lax' as const };
       response.headers.append('Set-Cookie', serialize('accessToken', '', cookieOptions));
       response.headers.append('Set-Cookie', serialize('refreshToken', '', cookieOptions));
     }
@@ -40,10 +30,21 @@ export async function POST() {
     return response;
   } catch (error) {
     if (isAxiosError(error)) {
+      const status = error.response?.status ?? 500;
+
+      // Уже разлогинен? Считаем это успешным выходом.
+      if (status === 401 || status === 403) {
+        const response = NextResponse.json({ message: 'Already logged out' }, { status: 200 });
+        const cookieOptions = { path: '/', maxAge: 0, httpOnly: true, sameSite: 'lax' as const };
+        response.headers.append('Set-Cookie', serialize('accessToken', '', cookieOptions));
+        response.headers.append('Set-Cookie', serialize('refreshToken', '', cookieOptions));
+        return response;
+      }
+
       logErrorResponse(error.response?.data);
       return NextResponse.json(
         { error: error.message, response: error.response?.data },
-        { status: error.response?.status ?? 500 },
+        { status }
       );
     }
     logErrorResponse({ message: (error as Error).message });

@@ -62,8 +62,13 @@ export async function login(dto: LoginDto) {
 }
 
 export async function logout() {
-  await api.post('/auth/logout');
-  useAuthStore.getState().clearIsAuthenticated();
+  try {
+    await api.post('/auth/logout');
+  } catch {
+    // Если уже разлогинены или сеть упала — считаем это успешным выходом
+  } finally {
+    useAuthStore.getState().clearIsAuthenticated();
+  }
 }
 
 export async function getSession() {
