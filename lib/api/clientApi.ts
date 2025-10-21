@@ -6,41 +6,56 @@ import type { User } from '@/types/user';
 
 type UnknownRecord = Record<string, unknown>;
 
-function isUser(value: unknown): value is User {
-  if (!value || typeof value !== 'object') return false;
-  const r = value as UnknownRecord;
-  return typeof r.email === 'string' && typeof r.username === 'string';
+function pickUserFromPayload(payload: unknown): UnknownRecord | null {
+  if (!payload || typeof payload !== 'object') return null;
+
+  // Массив? Поищем в каждом элементе
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const candidate = pickUserFromPayload(item);
+      if (candidate) return candidate;
+    }
+    return null;
+  }
+
+  const data = payload as UnknownRecord;
+
+  // Наиболее частые варианты обёрток
+  if (data.user && typeof data.user === 'object') {
+    const nested = pickUserFromPayload(data.user);
+    if (nested) return nested;
+  }
+  if (data.data && typeof data.data === 'object') {
+    const nested = pickUserFromPayload(data.data);
+    if (nested) return nested;
+  }
+
+  return data;
 }
 
 function extractUser(payload: unknown): User | null {
-  if (isUser(payload)) return payload;
+  const data = pickUserFromPayload(payload);
+  if (!data) return null;
 
-  if (!payload || typeof payload !== 'object') return null;
-  const data = payload as UnknownRecord;
+  const email =
+    typeof (data as any).email === 'string' ? ((data as any).email as string) : null;
 
-  // common wrappers
-  if (isUser(data.user)) return data.user as User;
-  if (isUser(data.data)) return data.data as User;
+  // username: берём по приоритету username → name → часть email до @
+  let username: string | null = null;
+  if (typeof (data as any).username === 'string') username = (data as any).username;
+  else if (typeof (data as any).name === 'string') username = (data as any).name;
+  else if (email) username = email.split('@')[0];
 
-  // nested objects
-  if (data.user && typeof data.user === 'object') {
-    const u = extractUser(data.user);
-    if (u) return u;
-  }
-  if (data.data && typeof data.data === 'object') {
-    const u = extractUser(data.data);
-    if (u) return u;
-  }
+  const avatarURL =
+    typeof (data as any).avatarURL === 'string'
+      ? ((data as any).avatarURL as string)
+      : typeof (data as any).avatar === 'string'
+      ? ((data as any).avatar as string)
+      : null;
 
-  // arrays
-  if (Array.isArray(payload)) {
-    for (const item of payload) {
-      const u = extractUser(item);
-      if (u) return u;
-    }
-  }
+  if (!email || !username) return null;
 
-  return null;
+  return { email, username, avatarURL, avatar: avatarURL ?? null };
 }
 
 type RegisterDto = { email: string; password: string };
@@ -67,15 +82,8 @@ export async function logout() {
 
 export async function getSession() {
   try {
-    const s = await api.get('/auth/session');
-    const userFromSession = extractUser(s.data);
-    if (userFromSession) {
-      useAuthStore.getState().setUser(userFromSession);
-      return userFromSession;
-    }
-    // Fallback to explicit /users/me if session endpoint didn't include user
-    const me = await api.get('/users/me');
-    const user = extractUser(me.data);
+    const res = await api.get('/auth/session');
+    const user = extractUser(res.data);
     if (user) {
       useAuthStore.getState().setUser(user);
       return user;
