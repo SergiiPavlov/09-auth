@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/api';
-import type { Note } from '@/types/note';
+import type { Note, NoteTag } from '@/types/note';
 
 export type FetchNotesParams = {
   page?: number;
@@ -14,6 +14,12 @@ export type FetchNotesResponse = {
   page: number;
   perPage: number;
   totalPages: number;
+};
+
+export type NewNoteData = {
+  title: string;
+  content: string;
+  tag: NoteTag;
 };
 
 function normalizeNotesResponse(raw: any, params: FetchNotesParams): FetchNotesResponse {
@@ -74,4 +80,25 @@ export async function fetchNoteById(id: string): Promise<Note> {
 
 export async function deleteNote(id: string): Promise<void> {
   await api.delete(`/notes/${id}`);
+}
+
+export async function createNote(data: NewNoteData) {
+  const res = await api.post('/notes', {
+    title: data.title,
+    content: data.content,
+    tag: data.tag, // must be one of: 'Todo' | 'Work' | 'Personal' | 'Meeting' | 'Shopping'
+  });
+  return res.data;
+}
+
+export async function getCategories(): Promise<{ id: string; name: string }[]> {
+  try {
+    const res = await api.get('/notes/categories');
+    const items = (res.data?.items ?? res.data?.categories ?? res.data) as any;
+    if (Array.isArray(items) && items.length && items[0]?.id && items[0]?.name) {
+      return items as { id: string; name: string }[];
+    }
+  } catch {}
+  const tags: NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'];
+  return tags.map((t) => ({ id: t.toLowerCase(), name: t }));
 }
