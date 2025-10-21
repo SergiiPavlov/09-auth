@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/EditProfilePage.module.css';
 import { getSession, updateMe } from '@/lib/api/clientApi';
+import type { User } from '@/types/user';
 import { useAuthStore } from '@/lib/store/authStore';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -25,7 +26,7 @@ export default function EditProfilePage() {
       return;
     }
 
-    getSession().then((sessionUser) => {
+    getSession().then((sessionUser: User | null) => {
       if (!sessionUser) {
         return;
       }
