@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { isAxiosError } from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import api from './api';
 import type { Note } from '@/types/note';
@@ -6,20 +7,39 @@ import type { User } from '@/types/user';
 import type { FetchNotesParams, FetchNotesResponse } from './clientApi';
 import type { NoteCategory } from './clientApi';
 
+const UNAUTHORIZED_STATUSES = new Set([401, 403]);
+
 function withCookiesConfig(): AxiosRequestConfig {
-  const cookieHeader = cookies().toString();
-  return cookieHeader
-    ? {
-        headers: {
-          Cookie: cookieHeader,
-        },
-      }
-    : {};
+  try {
+    const cookieHeader = cookies().toString();
+
+    if (!cookieHeader) {
+      return {};
+    }
+
+    return {
+      headers: {
+        Cookie: cookieHeader,
+      },
+    };
+  } catch {
+    return {};
+  }
 }
 
-export async function getServerMe(): Promise<User> {
-  const { data } = await api.get<User>('/users/me', withCookiesConfig());
-  return data;
+export async function getServerMe(): Promise<User | null> {
+  try {
+    const { data } = await api.get<User>('/users/me', withCookiesConfig());
+    if (!data || Object.keys(data).length === 0) {
+      return null;
+    }
+    return data;
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status && UNAUTHORIZED_STATUSES.has(error.response.status)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export { getServerMe as getMe };
