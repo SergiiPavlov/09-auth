@@ -28,15 +28,20 @@ function createErrorResponse(error: unknown): NextResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieHeader = cookies().toString();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
     const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get('search') || undefined;
+    const page = searchParams.get('page') || undefined;
+    const perPage = searchParams.get('perPage') || undefined;
+    const tag = searchParams.get('tag') || undefined;
     const upstream = await api.get('/notes', {
       headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
       params: {
-        search: searchParams.get('search') ?? undefined,
-        page: searchParams.get('page') ?? undefined,
-        perPage: searchParams.get('perPage') ?? undefined,
-        tag: searchParams.get('tag') ?? undefined,
+        search,
+        page,
+        perPage,
+        tag,
       },
     });
 
@@ -50,7 +55,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieHeader = cookies().toString();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
     const body = await request.json();
 
     const upstream = await api.post('/notes', body, {
