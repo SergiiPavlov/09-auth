@@ -1,7 +1,1 @@
-export interface User {
-  id?: string;
-  username: string;
-  email: string;
-  avatarURL?: string | null;
-  avatar?: string | null;
-}
+export interface User { username: string; email: string; avatar: string; }

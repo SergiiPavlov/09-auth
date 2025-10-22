@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getCategoriesServer } from '@/lib/api/notes.server';
+import { getCategoriesServer } from '@/lib/api/serverApi';
 import css from './SidebarNotes.module.css';
 
 const TAGS = ['All', 'Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;

@@ -8,7 +8,7 @@ import css from './NotesPage.module.css';
 import SearchBox from '@/components/SearchBox/SearchBox';
 import Pagination from '@/components/Pagination/Pagination';
 import NoteList from '@/components/NoteList/NoteList';
-import { fetchNotes, type FetchNotesResponse } from '@/lib/api/notes';
+import { fetchNotes, type FetchNotesResponse } from '@/lib/api/clientApi';
 import type { NoteTag } from '@/types/note';
 
 const PER_PAGE = 12;
