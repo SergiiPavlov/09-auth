@@ -1,47 +1,22 @@
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-
-const PUBLIC_AUTH = ['/sign-in', '/sign-up'];
-const PRIVATE_PREFIX = ['/profile', '/notes'];
-
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-
-  // Skip assets and API routes
-  if (
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/robots.txt') ||
-    pathname.startsWith('/sitemap.xml')
-  ) {
-    return NextResponse.next();
+import { NextResponse } from 'next/server';
+const AUTH_ROUTES = ['/sign-in', '/sign-up'];
+const PRIVATE_PREFIXES = ['/profile', '/notes'];
+export async function middleware(req: NextRequest) {
+  const { pathname, origin } = req.nextUrl;
+  const accessToken = req.cookies.get('accessToken')?.value;
+  const refreshToken = req.cookies.get('refreshToken')?.value;
+  let isAuth = Boolean(accessToken);
+  if (!isAuth && refreshToken) {
+    try {
+      const resp = await fetch(`${origin}/api/auth/session`, { method: 'GET', headers: { cookie: req.headers.get('cookie') || '' } });
+      if (resp.ok) isAuth = true;
+    } catch {}
   }
-
-  // Check cookie set by backend (proxied through our app/api/*)
-  const isAuthed = Boolean(req.cookies.get('accessToken')?.value);
-
-  const isPublicAuth = PUBLIC_AUTH.includes(pathname);
-  const isPrivate = PRIVATE_PREFIX.some((p) => pathname.startsWith(p));
-
-  // Block private routes for guests
-  if (isPrivate && !isAuthed) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/sign-in';
-    url.searchParams.set('from', pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // Block auth pages for authed users
-  if (isPublicAuth && isAuthed) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/profile';
-    return NextResponse.redirect(url);
-  }
-
+  const isPrivate = PRIVATE_PREFIXES.some((p) => pathname.startsWith(p));
+  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+  if (isPrivate && !isAuth) { const url = req.nextUrl.clone(); url.pathname = '/sign-in'; return NextResponse.redirect(url); }
+  if (isAuth && isAuthRoute) { const url = req.nextUrl.clone(); url.pathname = '/profile'; return NextResponse.redirect(url); }
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api).*)'],
-};
+export const config = { matcher: ['/profile/:path*', '/notes/:path*', '/sign-in', '/sign-up'] };

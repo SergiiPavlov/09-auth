@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { unstable_noStore } from 'next/cache';
 import NotesClient from './Notes.client';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
-import { fetchNotesServer } from '@/lib/api/notes.server';
+import { fetchNotesServer } from '@/lib/api/serverApi';
 import type { NoteTag } from '@/types/note';
 type Props = {
   params: Promise<{ slug?: string[] }>;

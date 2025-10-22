@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import css from './NoteList.module.css';
 import type { Note } from '@/types/note';
-import { deleteNote } from '@/lib/api/notes';
+import { deleteNote } from '@/lib/api/clientApi';
 import { toast } from 'react-hot-toast';
 import { getErrorMessage } from '@/lib/errors';
 

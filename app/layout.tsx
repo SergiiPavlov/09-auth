@@ -1,3 +1,5 @@
+import AuthProvider from '@/components/AuthProvider/AuthProvider';
+import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Roboto } from 'next/font/google';
@@ -38,7 +40,9 @@ export default function RootLayout({ children, modal }: { children: ReactNode; m
     <html lang="en">
       <body className={roboto.variable}>
         <AppShell>
-          {children}
+          <TanStackProvider><AuthProvider>
+{children}
+</AuthProvider></TanStackProvider>
           {modal}
         </AppShell>
       </body>
