@@ -9,9 +9,10 @@ import type { NoteCategory } from './clientApi';
 
 const UNAUTHORIZED_STATUSES = new Set([401, 403]);
 
-function withCookiesConfig(): AxiosRequestConfig {
+async function withCookiesConfig(): Promise<AxiosRequestConfig> {
   try {
-    const cookieHeader = cookies().toString();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
 
     if (!cookieHeader) {
       return {};
@@ -29,7 +30,7 @@ function withCookiesConfig(): AxiosRequestConfig {
 
 export async function getServerMe(): Promise<User | null> {
   try {
-    const { data } = await api.get<User>('/users/me', withCookiesConfig());
+    const { data } = await api.get<User>('/users/me', await withCookiesConfig());
     if (!data || Object.keys(data).length === 0) {
       return null;
     }
@@ -47,27 +48,28 @@ export { getServerMe as getMe };
 export async function fetchNotesServer(
   params: FetchNotesParams = {}
 ): Promise<FetchNotesResponse> {
+  const cookieConfig = await withCookiesConfig();
   const { data } = await api.get<FetchNotesResponse>('/notes', {
-    ...withCookiesConfig(),
+    ...cookieConfig,
     params,
   });
   return data;
 }
 
 export async function fetchNoteByIdServer(id: string): Promise<Note> {
-  const { data } = await api.get<Note>(`/notes/${id}`, withCookiesConfig());
+  const { data } = await api.get<Note>(`/notes/${id}`, await withCookiesConfig());
   return data;
 }
 
 export async function checkSessionServer(): Promise<AxiosResponse<User | null>> {
-  return api.get<User | null>('/auth/session', withCookiesConfig());
+  return api.get<User | null>('/auth/session', await withCookiesConfig());
 }
 
 export async function getCategoriesServer(): Promise<NoteCategory[]> {
   try {
     const { data } = await api.get<NoteCategory[] | string[]>(
       '/notes/categories',
-      withCookiesConfig()
+      await withCookiesConfig()
     );
 
     if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
