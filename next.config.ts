@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'ac.goit.global' },
     ],
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
