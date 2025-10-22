@@ -64,15 +64,30 @@ export async function checkSessionServer(): Promise<AxiosResponse<User | null>> 
 }
 
 export async function getCategoriesServer(): Promise<NoteCategory[]> {
-  const { data } = await api.get<NoteCategory[] | string[]>('/notes/categories', withCookiesConfig());
+  try {
+    const { data } = await api.get<NoteCategory[] | string[]>(
+      '/notes/categories',
+      withCookiesConfig()
+    );
 
-  if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
-    return (data as string[]).map((name, index) => ({ id: `${index}`, name }));
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+      return (data as string[]).map((name, index) => ({ id: `${index}`, name }));
+    }
+
+    if (Array.isArray(data)) {
+      return data as NoteCategory[];
+    }
+
+    return [];
+  } catch (error) {
+    if (isAxiosError(error)) {
+      const status = error.response?.status;
+
+      if (!status || UNAUTHORIZED_STATUSES.has(status) || status === 404) {
+        return [];
+      }
+    }
+
+    throw error;
   }
-
-  if (Array.isArray(data)) {
-    return data as NoteCategory[];
-  }
-
-  return [];
 }
