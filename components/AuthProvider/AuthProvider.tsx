@@ -1,54 +1,92 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getSession, logout } from '@/lib/api/clientApi';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { checkSession, getUser, logout } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
 
-/**
- * AuthProvider: подтягивает сессию на клиенте и контролирует доступ к приватному контенту.
- * - Если enforceAuth=true, при отсутствии сессии скрывает children (а middleware сделает редирект).
- * - Показывает простой лоадер, пока идёт первичная проверка.
- */
-export default function AuthProvider({
-  children,
-  enforceAuth = false,
-}: {
-  children: React.ReactNode;
-  enforceAuth?: boolean;
-}) {
-  const { isAuthenticated } = useAuthStore();
-  const [checking, setChecking] = useState(true);
-  const hasLoggedOutRef = useRef(false);
+const PRIVATE_PREFIXES = ['/profile', '/notes'];
 
-  const { isLoading } = useQuery({
-    queryKey: ['auth', 'session'],
-    queryFn: getSession,
-    staleTime: 60_000,
-  });
+function isPrivateRoute(pathname: string): boolean {
+  return PRIVATE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export default function AuthProvider({ children }: AuthProviderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const clearIsAuthenticated = useAuthStore((state) => state.clearIsAuthenticated);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Когда кверя впервые отработала, перестаём показывать лоадер
-    if (!isLoading) setChecking(false);
-  }, [isLoading]);
+    let cancelled = false;
 
-  useEffect(() => {
-    if (checking || !enforceAuth || isAuthenticated || hasLoggedOutRef.current) {
-      return;
+    async function handleUnauthorized() {
+      clearIsAuthenticated();
+      if (!isPrivateRoute(pathname)) {
+        return;
+      }
+
+      try {
+        await logout();
+      } catch {
+        // ignore network errors during best-effort logout
+      }
+
+      if (!cancelled) {
+        router.replace('/sign-in');
+      }
     }
 
-    hasLoggedOutRef.current = true;
-    logout().catch(() => {
-      /* noop */
-    });
-  }, [checking, enforceAuth, isAuthenticated]);
+    async function verifySession() {
+      setIsChecking(true);
 
-  if (checking) {
+      try {
+        const hasSession = await checkSession();
+        if (cancelled) {
+          return;
+        }
+
+        if (!hasSession) {
+          await handleUnauthorized();
+          return;
+        }
+
+        const user = await getUser();
+        if (cancelled) {
+          return;
+        }
+
+        setAuthenticated(user);
+      } catch {
+        if (!cancelled) {
+          await handleUnauthorized();
+        }
+      } finally {
+        if (!cancelled) {
+          setIsChecking(false);
+        }
+      }
+    }
+
+    verifySession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router, setAuthenticated, clearIsAuthenticated]);
+
+  if (isChecking) {
     return <div style={{ padding: '2rem', textAlign: 'center' }}>Checking session…</div>;
   }
 
-  if (enforceAuth && !isAuthenticated) {
-    // Ничего не рендерим — middleware уже перенаправит пользователя на /sign-in
+  if (!isAuthenticated && isPrivateRoute(pathname)) {
     return null;
   }
 

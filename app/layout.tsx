@@ -1,17 +1,9 @@
-import AuthProvider from '@/components/AuthProvider/AuthProvider';
-import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Roboto } from 'next/font/google';
-import './globals.css';
+import TanStackProvider from '@/components/TanStackProvider/TanStackProvider';
+import AuthProvider from '@/components/AuthProvider/AuthProvider';
 import AppShell from '@/components/AppShell/AppShell';
-
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-roboto',
-  display: 'swap',
-});
+import './globals.css';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://notehub.example';
 const OG_IMAGE = 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg';
@@ -35,16 +27,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children, modal }: { children: ReactNode; modal: ReactNode }) {
+interface RootLayoutProps {
+  children: ReactNode;
+  modal: ReactNode;
+}
+
+export default function RootLayout({ children, modal }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body className={roboto.variable}>
-        <AppShell>
-          <TanStackProvider><AuthProvider>
-{children}
-</AuthProvider></TanStackProvider>
-          {modal}
-        </AppShell>
+      <body>
+        <TanStackProvider>
+          <AuthProvider>
+            <AppShell>
+              <>{children}</>
+              {modal}
+            </AppShell>
+          </AuthProvider>
+        </TanStackProvider>
       </body>
     </html>
   );

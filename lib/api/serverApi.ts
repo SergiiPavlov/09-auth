@@ -1,36 +1,58 @@
 import { cookies } from 'next/headers';
-import type { AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import api from './api';
 import type { Note } from '@/types/note';
 import type { User } from '@/types/user';
+import type { FetchNotesParams, FetchNotesResponse } from './clientApi';
+import type { NoteCategory } from './clientApi';
 
-function withCookie() {
-  const cookieStore = cookies();
-  const cookieHeader = cookieStore.toString();
-  return { headers: { Cookie: cookieHeader } } as const;
+function withCookiesConfig(): AxiosRequestConfig {
+  const cookieHeader = cookies().toString();
+  return cookieHeader
+    ? {
+        headers: {
+          Cookie: cookieHeader,
+        },
+      }
+    : {};
 }
 
 export async function getServerMe(): Promise<User> {
-  const { data } = await api.get<User>('/users/me', withCookie());
+  const { data } = await api.get<User>('/users/me', withCookiesConfig());
   return data;
 }
+
 export { getServerMe as getMe };
 
-export async function fetchNotesServer(params: { search?: string; page?: number; perPage?: number; tag?: string }): Promise<{ notes: Note[]; totalPages: number }> {
-  const { data } = await api.get<{ notes: Note[]; totalPages: number }>('/notes', { ...withCookie(), params });
+export async function fetchNotesServer(
+  params: FetchNotesParams = {}
+): Promise<FetchNotesResponse> {
+  const { data } = await api.get<FetchNotesResponse>('/notes', {
+    ...withCookiesConfig(),
+    params,
+  });
   return data;
 }
+
 export async function fetchNoteByIdServer(id: string): Promise<Note> {
-  const { data } = await api.get<Note>(`/notes/${id}`, withCookie());
+  const { data } = await api.get<Note>(`/notes/${id}`, withCookiesConfig());
   return data;
 }
-export async function checkSessionServer(): Promise<AxiosResponse<any>> {
-  return api.get('/auth/session', withCookie());
+
+export async function checkSessionServer(): Promise<AxiosResponse<User | null>> {
+  return api.get<User | null>('/auth/session', withCookiesConfig());
 }
 
+export async function getCategoriesServer(): Promise<NoteCategory[]> {
+  const { data } = await api.get<NoteCategory[] | string[]>('/notes/categories', withCookiesConfig());
 
-// Optional categories endpoint (used by sidebar); proxied via app/api/notes/categories
-export async function getCategoriesServer(): Promise<string[]> {
-  const { data } = await api.get<string[]>('/notes/categories', withCookie());
-  return data;
+  if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'string') {
+    return (data as string[]).map((name, index) => ({ id: `${index}`, name }));
+  }
+
+  if (Array.isArray(data)) {
+    return data as NoteCategory[];
+  }
+
+  return [];
 }

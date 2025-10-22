@@ -2,24 +2,23 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import styles from '@/app/styles/AuthNavigation.module.css';
-import { getSession, logout } from '@/lib/api/clientApi';
+import { logout } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
 
 export default function AuthNavigation() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, clearIsAuthenticated } = useAuthStore();
 
-  useQuery({ queryKey: ['auth', 'session'], queryFn: getSession, staleTime: 60_000 });
-
-  async function handleLogout() {
+  const handleLogout = async () => {
     try {
       await logout();
     } finally {
+      clearIsAuthenticated();
       router.push('/sign-in');
+      router.refresh();
     }
-  }
+  };
 
   if (!isAuthenticated) {
     return (

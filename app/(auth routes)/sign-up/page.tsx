@@ -5,16 +5,20 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/SignUpPage.module.css';
 import { register } from '@/lib/api/clientApi';
+import { useAuthStore } from '@/lib/store/authStore';
 import { getErrorMessage } from '@/lib/errors';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const [error, setError] = useState<string | null>(null);
 
   const registerMutation = useMutation({
     mutationFn: register,
-    onSuccess: () => {
+    onSuccess: (user) => {
+      setAuthenticated(user);
       router.push('/profile');
+      router.refresh();
     },
     onError: (err: unknown) => {
       setError(getErrorMessage(err, 'Registration failed'));
@@ -26,8 +30,8 @@ export default function SignUpPage() {
     setError(null);
 
     const formData = new FormData(event.currentTarget);
-    const email = String(formData.get('email') || '');
-    const password = String(formData.get('password') || '');
+    const email = String(formData.get('email') ?? '');
+    const password = String(formData.get('password') ?? '');
 
     registerMutation.mutate({ email, password });
   }

@@ -1,3 +1,7 @@
+:root {
+  --font-roboto: 'Arial';
+}
+
 html,
 body {
   height: 100%;
