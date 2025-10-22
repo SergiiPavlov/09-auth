@@ -28,13 +28,15 @@ function createErrorResponse(error: unknown): NextResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieHeader = cookies().toString();
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.toString();
     const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get('search') || undefined;
 
     const upstream = await api.get('/notes/categories', {
       headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
       params: {
-        search: searchParams.get('search') ?? undefined,
+        search,
       },
     });
 
