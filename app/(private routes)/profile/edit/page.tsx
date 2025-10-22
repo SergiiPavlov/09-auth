@@ -5,41 +5,56 @@ import { useMutation } from '@tanstack/react-query';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import styles from '@/app/styles/EditProfilePage.module.css';
-import { getSession, updateMe } from '@/lib/api/clientApi';
-import type { User } from '@/types/user';
+import { getUser, updateUser } from '@/lib/api/clientApi';
 import { useAuthStore } from '@/lib/store/authStore';
 import { getErrorMessage } from '@/lib/errors';
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [username, setUsername] = useState(user?.username ?? '');
   const [email, setEmail] = useState(user?.email ?? 'user_email@example.com');
-  const [avatar, setAvatar] = useState(user?.avatarURL ?? user?.avatar ?? '/icon.svg');
+  const [avatar, setAvatar] = useState(user?.avatar ?? '/icon.svg');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      setUsername(user.username);
-      setEmail(user.email);
-      setAvatar(user.avatarURL ?? user.avatar ?? '/icon.svg');
-      return;
-    }
+    let cancelled = false;
 
-    getSession().then((sessionUser: User | null) => {
-      if (!sessionUser) {
+    async function ensureProfile() {
+      if (user) {
+        setUsername(user.username);
+        setEmail(user.email);
+        setAvatar(user.avatar ?? '/icon.svg');
         return;
       }
-      setUsername(sessionUser.username);
-      setEmail(sessionUser.email);
-      setAvatar(sessionUser.avatarURL ?? sessionUser.avatar ?? '/icon.svg');
-    });
-  }, [user]);
+
+      try {
+        const freshUser = await getUser();
+        if (cancelled) {
+          return;
+        }
+        setUser(freshUser);
+        setUsername(freshUser.username);
+        setEmail(freshUser.email);
+        setAvatar(freshUser.avatar ?? '/icon.svg');
+      } catch {
+        // ignore fetch error; AuthProvider/middleware will handle auth state
+      }
+    }
+
+    ensureProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser, user]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (value: string) => updateMe(value),
-    onSuccess: () => {
+    mutationFn: () => updateUser({ username: username.trim() }),
+    onSuccess: (updatedUser) => {
+      setUser(updatedUser);
       router.push('/profile');
+      router.refresh();
     },
     onError: (err: unknown) => {
       setError(getErrorMessage(err, 'Update failed'));
@@ -49,7 +64,7 @@ export default function EditProfilePage() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    updateProfileMutation.mutate(username.trim());
+    updateProfileMutation.mutate();
   }
 
   function handleCancel() {
@@ -61,7 +76,7 @@ export default function EditProfilePage() {
       <div className={styles.profileCard}>
         <h1 className={styles.formTitle}>Edit Profile</h1>
 
-        <Image src={avatar} alt="User Avatar" width={120} height={120} className={styles.avatar} unoptimized />
+        <Image src={avatar} alt="User Avatar" width={120} height={120} className={styles.avatar} />
 
         <form className={styles.profileInfo} onSubmit={handleSubmit}>
           <div className={styles.usernameWrapper}>

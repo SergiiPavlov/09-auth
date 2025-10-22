@@ -1,8 +1,8 @@
 export * from './clientApi';
-export { 
-  fetchNotesServer, 
-  fetchNoteByIdServer, 
-  getServerMe as getMe, 
-  checkSessionServer, 
-  getCategoriesServer 
+export {
+  fetchNotesServer,
+  fetchNoteByIdServer,
+  getServerMe as getMe,
+  checkSessionServer,
+  getCategoriesServer,
 } from './serverApi';
