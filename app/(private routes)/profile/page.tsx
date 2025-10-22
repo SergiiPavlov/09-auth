@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import styles from '@/app/styles/ProfilePage.module.css';
 import { getMe } from '@/lib/api/serverApi';
 
@@ -16,9 +17,13 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const user = await getMe();
-  const username = user?.username ?? 'your_username';
-  const email = user?.email ?? 'your_email@example.com';
-  const avatar = user?.avatar ?? '/icon.svg';
+  if (!user) {
+    redirect('/sign-in');
+  }
+
+  const username = user.username ?? 'your_username';
+  const email = user.email ?? 'your_email@example.com';
+  const avatar = user.avatar ?? '/icon.svg';
 
   return (
     <main className={styles.mainContent}>
