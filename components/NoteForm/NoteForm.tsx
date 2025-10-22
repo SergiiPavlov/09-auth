@@ -1,106 +1,150 @@
 'use client';
 
-import css from './NoteForm.module.css';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { createNote, type NewNoteData, getCategories } from '@/lib/api';
+import css from './NoteForm.module.css';
+import {
+  createNote,
+  getCategories,
+  type CreateNoteBody,
+  type NoteCategory,
+} from '@/lib/api/clientApi';
 import { getErrorMessage } from '@/lib/errors';
 import type { NoteTag } from '@/types/note';
-import { useEffect, useMemo, useState } from 'react';
 import { useNoteDraftStore, initialDraft, type NoteDraft } from '@/lib/store/noteStore';
 
-const TAGS: readonly NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
-const MIN_TITLE = 3;
+const FALLBACK_TAGS: readonly NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'] as const;
+const MIN_TITLE_LENGTH = 3;
 
-type Props = { categories?: { id: string; name: string }[] };
+interface NoteFormProps {
+  categories?: NoteCategory[];
+}
 
-export default function NoteForm({ categories }: Props) {
+export default function NoteForm({ categories }: NoteFormProps) {
   const router = useRouter();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { draft, setDraft, clearDraft } = useNoteDraftStore();
+  const [availableCategories, setAvailableCategories] = useState<NoteCategory[]>(categories ?? []);
 
-  // Fallback categories from TAGS if none provided
-  const fallbackCategories = useMemo(
-    () => TAGS.map((t) => ({ id: t.toLowerCase(), name: t })),
+  const fallbackCategories = useMemo<NoteCategory[]>(
+    () => FALLBACK_TAGS.map((tag) => ({ id: tag.toLowerCase(), name: tag })),
     []
   );
-  const [cats, setCats] = useState<{ id: string; name: string }[]>(categories ?? fallbackCategories);
 
   useEffect(() => {
-    let mounted = true;
-    if (!categories) {
-      getCategories().then((list) => {
-        if (mounted && Array.isArray(list) && list.length) setCats(list);
-      }).catch(() => {});
+    let active = true;
+
+    async function loadCategories() {
+      if (categories?.length) {
+        setAvailableCategories(categories);
+        return;
+      }
+
+      try {
+        const remoteCategories = await getCategories();
+        if (!active) {
+          return;
+        }
+        if (remoteCategories.length) {
+          setAvailableCategories(remoteCategories);
+        } else {
+          setAvailableCategories(fallbackCategories);
+        }
+      } catch {
+        if (active) {
+          setAvailableCategories(fallbackCategories);
+        }
+      }
     }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await handleFormAction();
-  };
-return () => { mounted = false; };
-  }, [categories]);
+    loadCategories();
+
+    return () => {
+      active = false;
+    };
+  }, [categories, fallbackCategories]);
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: (payload: NewNoteData) => createNote(payload),
+    mutationFn: (payload: CreateNoteBody) => createNote(payload),
     onSuccess: async () => {
       toast.success('Note created');
       clearDraft();
-      await qc.invalidateQueries({ queryKey: ['notes'] });
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
       router.refresh();
     },
-    onError: (err: unknown) => {
-      toast.error(getErrorMessage(err, 'Failed to create note'));
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create note'));
     },
   });
 
-  const handleChange: React.ChangeEventHandler<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> = (e) => {
-    const { name, value } = e.target as HTMLInputElement;
+  const currentDraft = { ...initialDraft, ...draft };
+
+  const handleChange: React.ChangeEventHandler<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  > = (event) => {
+    const { name, value } = event.target;
     setDraft({ [name]: value } as Partial<NoteDraft>);
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const title = currentDraft.title?.trim() ?? '';
+    const content = currentDraft.content?.trim() ?? '';
+    const tag = currentDraft.tag ?? FALLBACK_TAGS[0];
+
+    if (title.length < MIN_TITLE_LENGTH || !content) {
+      toast.error('Please fill in title and content');
+      return;
+    }
+
+    const payload: CreateNoteBody = {
+      title,
+      content,
+      tag,
+    };
+
+    await mutateAsync(payload);
   };
 
   const handleCancel = () => {
     router.back();
   };
 
-  const handleFormAction = async () => {
-    const title = draft.title?.trim() ?? '';
-    const content = draft.content?.trim() ?? '';
-    const tag = draft.tag ?? 'Todo';
-    if (title.length < MIN_TITLE || !content) {
-      toast.error('Please fill in title and content');
-      return;
-    }
-    await mutateAsync({ title, content, tag });
-  };
-
-  const current = { ...initialDraft, ...draft };
+  const categoriesToRender = availableCategories.length
+    ? availableCategories
+    : fallbackCategories;
 
   return (
-    <form className={css.form} action={handleFormAction}>
+    <form className={css.form} onSubmit={handleSubmit}>
       <div className={css.field}>
-        <label htmlFor="title" className={css.label}>Title</label>
+        <label htmlFor="title" className={css.label}>
+          Title
+        </label>
         <input
           id="title"
           name="title"
           type="text"
           className={css.input}
-          value={current.title}
+          value={currentDraft.title ?? ''}
           onChange={handleChange}
+          minLength={MIN_TITLE_LENGTH}
           required
-          minLength={MIN_TITLE}
           placeholder="Enter title"
         />
       </div>
 
       <div className={css.field}>
-        <label htmlFor="content" className={css.label}>Content</label>
+        <label htmlFor="content" className={css.label}>
+          Content
+        </label>
         <textarea
           id="content"
           name="content"
           className={css.textarea}
-          value={current.content}
+          value={currentDraft.content ?? ''}
           onChange={handleChange}
           required
           placeholder="Write your note..."
@@ -108,29 +152,26 @@ return () => { mounted = false; };
       </div>
 
       <div className={css.field}>
-        <label htmlFor="tag" className={css.label}>Tag</label>
+        <label htmlFor="tag" className={css.label}>
+          Tag
+        </label>
         <select
           id="tag"
           name="tag"
           className={css.select}
-          value={current.tag ?? 'Todo'}
+          value={currentDraft.tag ?? FALLBACK_TAGS[0]}
           onChange={handleChange}
         >
-          {cats.map((opt) => (
-            <option key={opt.id} value={opt.name}>
-              {opt.name}
+          {categoriesToRender.map((category) => (
+            <option key={category.id} value={category.name}>
+              {category.name}
             </option>
           ))}
         </select>
       </div>
 
       <div className={css.actions}>
-        <button
-          type="submit"
-          disabled={isPending}
-          className={css.submitButton}
-         
-        >
+        <button type="submit" disabled={isPending} className={css.submitButton}>
           {isPending ? 'Creating…' : 'Create'}
         </button>
         <button type="button" onClick={handleCancel} className={css.cancelButton}>

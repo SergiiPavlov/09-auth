@@ -5,5 +5,5 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default function PrivateRoutesLayout({ children }: { children: ReactNode }) {
-  return <AuthProvider enforceAuth>{children}</AuthProvider>;
+  return <AuthProvider>{children}</AuthProvider>;
 }
