@@ -1,44 +1,55 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { isAxiosError } from 'axios';
-import { api } from '../../api';
-
-function appendSetCookie(response: NextResponse, header?: string | string[]) {
-  if (!header) {
-    return;
-  }
-
-  const values = Array.isArray(header) ? header : [header];
-  for (const value of values) {
-    response.headers.append('Set-Cookie', value);
-  }
-}
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { api } from "../../api";
+import { parse } from "cookie";
+import { isAxiosError } from "axios";
+import { logErrorResponse } from "../../_utils/utils";
 
 export async function GET() {
   try {
-    const cookieHeader = cookies().toString();
-    const upstream = await api.get('/auth/session', {
-      headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
-    });
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("accessToken")?.value;
+    const refreshToken = cookieStore.get("refreshToken")?.value;
 
-    const payload = upstream.data;
-    const response =
-      payload && Object.keys(payload as Record<string, unknown>).length > 0
-        ? NextResponse.json(payload, { status: upstream.status })
-        : new NextResponse(null, { status: upstream.status });
-    appendSetCookie(response, upstream.headers['set-cookie']);
-    return response;
-  } catch (error) {
-    if (isAxiosError(error) && error.response) {
-      const payload = error.response.data;
-      const response =
-        payload && Object.keys(payload as Record<string, unknown>).length > 0
-          ? NextResponse.json(payload, { status: error.response.status })
-          : new NextResponse(null, { status: error.response.status });
-      appendSetCookie(response, error.response.headers['set-cookie']);
-      return response;
+    if (accessToken) {
+      return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    if (refreshToken) {
+      const apiRes = await api.get("auth/session", {
+        headers: {
+          Cookie: cookieStore.toString(),
+        },
+      });
+
+      const setCookie = apiRes.headers["set-cookie"];
+
+      if (setCookie) {
+        const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
+        for (const cookieStr of cookieArray) {
+          const parsed = parse(cookieStr);
+
+          const options = {
+            expires: parsed.Expires ? new Date(parsed.Expires) : undefined,
+            path: parsed.Path,
+            maxAge: Number(parsed["Max-Age"]),
+          };
+
+          if (parsed.accessToken)
+            cookieStore.set("accessToken", parsed.accessToken, options);
+          if (parsed.refreshToken)
+            cookieStore.set("refreshToken", parsed.refreshToken, options);
+        }
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
+    }
+    return NextResponse.json({ success: false }, { status: 200 });
+  } catch (error) {
+    if (isAxiosError(error)) {
+      logErrorResponse(error.response?.data);
+      return NextResponse.json({ success: false }, { status: 200 });
+    }
+    logErrorResponse({ message: (error as Error).message });
+    return NextResponse.json({ success: false }, { status: 200 });
   }
 }
